@@ -1,7 +1,14 @@
+from datetime import timedelta
+
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
+from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
+
+
+def day_from_now():
+    return now() + timedelta(days=1)
 
 
 class Exam(models.Model):
@@ -89,3 +96,54 @@ class Slot(models.Model):
     def save(self, *args, **kwargs):
         self.exam_id = self.exam_day.exam_id
         super().save(*args, **kwargs)
+
+
+class Offer(models.Model):
+    class Status(models.TextChoices):
+        AWAITING = 'W', _('Awaiting')
+        ACCEPTED = 'A', _('Accepted')
+        CANCELED = 'C', _('Canceled')
+        EXPIRED = 'E', _('Expired')
+
+    offeror = models.ForeignKey(
+        'accounts.User', verbose_name=_('Offeror'), on_delete=models.CASCADE
+    )
+    offered_slot = models.ForeignKey(
+        'scheduling.Slot',
+        related_name='offers_as_offered',
+        verbose_name=_('Offered slot'),
+        on_delete=models.CASCADE,
+    )
+    wanted_slot = models.ForeignKey(
+        'scheduling.Slot',
+        related_name='offers_as_wanted',
+        verbose_name=_('Wanted slot'),
+        on_delete=models.CASCADE,
+    )
+    status = models.CharField(
+        _('Status'), choices=Status, default=Status.AWAITING, max_length=1
+    )
+    created_at = models.DateTimeField(_('Created at'), auto_now_add=True)
+    expires_at = models.DateTimeField(_('Expires at'), default=day_from_now)
+
+    class Meta:
+        verbose_name = _('Offer')
+        verbose_name_plural = _('Offers')
+
+        constraints = (
+            models.CheckConstraint(
+                condition=~models.Q(offered_slot=models.F('wanted_slot')),
+                name='offer_offered_slot_differs_from_wanted_slot',
+            ),
+            models.UniqueConstraint(
+                fields=['offered_slot', 'wanted_slot'],
+                condition=models.Q(status='W'),
+                name='unique_awaiting_offer_per_slot_pair',
+            ),
+        )
+
+    def __str__(self):
+        return f'{self.offeror} {self.offered_slot} for {self.wanted_slot}'
+
+    def get_absolute_url(self):
+        return reverse('Offer_detail', kwargs={'pk': self.pk})

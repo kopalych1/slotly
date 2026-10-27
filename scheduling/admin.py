@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Exam, ExamDay, Slot
+from .models import Exam, ExamDay, Offer, Slot
 
 
 @admin.register(Exam)
@@ -23,3 +23,15 @@ class SlotAdmin(admin.ModelAdmin):
 
     list_filter = ('exam', 'exam_day')
     readonly_fields = ('exam',)
+
+
+@admin.register(Offer)
+class OfferAdmin(admin.ModelAdmin):
+    list_display = (
+        'offeror',
+        'offered_slot',
+        'wanted_slot',
+        'status',
+        'expires_at',
+    )
+    list_filter = ('status',)
