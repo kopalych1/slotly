@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Exam, ExamDay, Offer, Slot
+from .models import Exam, ExamDay, Offer, Slot, SwapLog
 
 
 @admin.register(Exam)
@@ -35,3 +35,14 @@ class OfferAdmin(admin.ModelAdmin):
         'expires_at',
     )
     list_filter = ('status',)
+
+
+@admin.register(SwapLog)
+class SwapLogAdmin(admin.ModelAdmin):
+    list_display = ('exam_name', 'sender_name', 'receiver_name', 'exchange_datetime')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

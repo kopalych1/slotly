@@ -147,3 +147,55 @@ class Offer(models.Model):
 
     def get_absolute_url(self):
         return reverse('Offer_detail', kwargs={'pk': self.pk})
+
+
+class SwapLog(models.Model):
+    offer = models.ForeignKey(
+        'scheduling.Offer',
+        verbose_name=_('Offer'),
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+    sender_name = models.CharField(_('Sender name'), max_length=100)
+    receiver_name = models.CharField(_('Receiver name'), max_length=100)
+    sender = models.ForeignKey(
+        'accounts.User',
+        verbose_name=_('Sender'),
+        related_name='logs_as_sender',
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+    receiver = models.ForeignKey(
+        'accounts.User',
+        verbose_name=_('Receiver'),
+        related_name='logs_as_receiver',
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+    sender_slot = models.ForeignKey(
+        'scheduling.Slot',
+        verbose_name=_('Sender slot'),
+        related_name='slots_as_sender',
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+    receiver_slot = models.ForeignKey(
+        'scheduling.Slot',
+        verbose_name=_('Receiver slot'),
+        related_name='slots_as_receiver',
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+    sender_slot_datetime = models.DateTimeField(_('Sender slot time'))
+    receiver_slot_datetime = models.DateTimeField(_('Receiver slot time'))
+    exam_name = models.CharField(_('Exam name'), max_length=200)
+    exchange_datetime = models.DateTimeField(_('Exchange time'), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('SwapLog')
+        verbose_name_plural = _('SwapLogs')
+
+        ordering = ('-exchange_datetime',)
+
+    def __str__(self):
+        return f'{self.exam_name} {self.exchange_datetime:%Y-%m-%d %H:%M} {self.sender_name} {self.receiver_name}'
