@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
@@ -47,6 +48,15 @@ class ExamDay(models.Model):
         verbose_name_plural = _('ExamDays')
 
         ordering = ('start',)
+
+    def clean(self) -> None:
+        if not self.exam_id or not self.start or not self.end:  # pyright: ignore[reportAttributeAccessIssue]
+            return
+        if self.end <= self.start:
+            raise ValidationError({'end': _('Exam day must end after it starts')})
+        if self.end - self.start < timedelta(minutes=self.exam.slot_duration):
+            raise ValidationError({'end': _('Exam day is shorter than a single slot')})
+        super().clean()
 
     def __str__(self):
         return f'{self.exam.name} {self.start:%Y.%m.%d}'

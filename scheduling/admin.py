@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from scheduling.services import bulk_fill_slots
+
 from .models import Exam, ExamDay, Offer, Slot, SwapLog
 
 
@@ -15,6 +17,12 @@ class ExamAdmin(admin.ModelAdmin):
 @admin.register(ExamDay)
 class ExamDayAdmin(admin.ModelAdmin):
     list_display = ('exam', 'start', 'end')
+
+    def save_model(self, request, obj, form, change):
+
+        super().save_model(request, obj, form, change)
+        if not change:
+            bulk_fill_slots(obj)
 
 
 @admin.register(Slot)
