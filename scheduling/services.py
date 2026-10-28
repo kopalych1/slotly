@@ -11,11 +11,15 @@ from scheduling.exceptions import (
     DuplicateOfferError,
     InvalidDayRangeError,
     NotSlotOwnerError,
+    NotWantedSlotOwnerError,
+    OfferExpiredError,
+    OfferNotAwaitingError,
+    OfferOutdatedError,
     SameSlotError,
     SlotsAlreadyExistError,
     WantedSlotFreeError,
 )
-from scheduling.models import ExamDay, Offer, Slot
+from scheduling.models import ExamDay, Offer, Slot, SwapLog
 
 
 def bulk_fill_slots(examday: ExamDay) -> list[Slot]:
@@ -78,3 +82,56 @@ def create_offer(offeror: User, offered_slot: Slot, wanted_slot: Slot) -> Offer:
             )
     except IntegrityError:
         raise DuplicateOfferError()
+
+
+def accept_offer(offer_id: int, acceptor: User) -> SwapLog:
+    with transaction.atomic():
+        offer = Offer.objects.get(pk=offer_id)
+
+        locked = {
+            s.pk: s
+            for s in Slot.objects.select_for_update()
+            .filter(pk__in=(offer.wanted_slot_id, offer.offered_slot_id))  # pyright: ignore[reportAttributeAccessIssue]
+            .order_by('pk')
+        }
+
+        offer = Offer.objects.select_for_update().get(pk=offer_id)
+        wanted_slot = locked[offer.wanted_slot_id]  # pyright: ignore[reportAttributeAccessIssue]
+        offered_slot = locked[offer.offered_slot_id]  # pyright: ignore[reportAttributeAccessIssue]
+
+        if offer.status != Offer.Status.AWAITING:
+            raise OfferNotAwaitingError()
+        if offer.expires_at <= now():
+            raise OfferExpiredError()
+        if wanted_slot.exam.slots_change_deadline <= now():
+            raise DeadlinePassedError()
+        if offered_slot.owner_id != offer.offeror_id:  # pyright: ignore[reportAttributeAccessIssue]
+            raise OfferOutdatedError()
+        if wanted_slot.owner_id != acceptor.pk:  # pyright: ignore[reportAttributeAccessIssue]
+            raise NotWantedSlotOwnerError()
+
+        offer.status = Offer.Status.ACCEPTED
+        wanted_slot.owner = offer.offeror
+        offered_slot.owner = acceptor  # pyright: ignore[reportAttributeAccessIssue]
+
+        Offer.objects.filter(
+            status=Offer.Status.AWAITING,
+            offered_slot__in=(offered_slot, wanted_slot),
+        ).exclude(pk=offer.pk).update(status=Offer.Status.CANCELED)
+
+        offer.save(update_fields=['status'])
+        wanted_slot.save(update_fields=['owner'])
+        offered_slot.save(update_fields=['owner'])
+
+        return SwapLog.objects.create(
+            offer=offer,
+            sender_name=offer.offeror.username,
+            receiver_name=acceptor.username,
+            sender=offer.offeror,
+            receiver=acceptor,
+            sender_slot=offered_slot,
+            receiver_slot=wanted_slot,
+            sender_slot_datetime=offered_slot.start,
+            receiver_slot_datetime=wanted_slot.start,
+            exam_name=offered_slot.exam.name,
+        )

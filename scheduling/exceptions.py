@@ -52,3 +52,23 @@ class DeadlinePassedError(OfferError):
 
 class DuplicateOfferError(OfferError):
     message = _('You already have an active offer for this pair of slots')
+
+
+class AcceptOfferError(SchedulingError):
+    message = _('Offer cannot be accepted')
+
+
+class OfferNotAwaitingError(AcceptOfferError):
+    message = _('This offer is no longer active')
+
+
+class OfferExpiredError(AcceptOfferError):
+    message = _('This offer has expired')
+
+
+class OfferOutdatedError(AcceptOfferError):
+    message = _('The offering student no longer holds that slot')
+
+
+class NotWantedSlotOwnerError(AcceptOfferError):
+    message = _('You do not hold the slot this offer is for')
