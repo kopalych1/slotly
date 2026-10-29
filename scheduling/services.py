@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils.timezone import now
 
 from accounts.models import User
@@ -135,3 +136,21 @@ def accept_offer(offer_id: int, acceptor: User) -> SwapLog:
             receiver_slot_datetime=wanted_slot.start,
             exam_name=offered_slot.exam.name,
         )
+
+
+def release_slot(slot_id: int, user: User) -> None:
+    with transaction.atomic():
+        slot = Slot.objects.select_for_update().get(pk=slot_id)
+
+        if slot.owner_id != user.pk:  # pyright: ignore[reportAttributeAccessIssue]
+            raise NotSlotOwnerError()
+
+        if now() >= slot.exam.slots_change_deadline:
+            raise DeadlinePassedError()
+
+        slot.owner = None
+        slot.save(update_fields=['owner'])
+
+        Offer.objects.filter(
+            Q(offered_slot=slot) | Q(wanted_slot=slot), status=Offer.Status.AWAITING
+        ).update(status=Offer.Status.CANCELED)

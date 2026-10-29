@@ -31,7 +31,7 @@ class OfferError(SchedulingError):
 
 
 class NotSlotOwnerError(OfferError):
-    message = _('You do not own the slot you are offering')
+    message = _('You do not own this slot')
 
 
 class SameSlotError(OfferError):

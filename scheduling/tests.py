@@ -20,7 +20,12 @@ from scheduling.exceptions import (
     WantedSlotFreeError,
 )
 from scheduling.models import Exam, ExamDay, Offer, Slot, SwapLog
-from scheduling.services import accept_offer, bulk_fill_slots, create_offer
+from scheduling.services import (
+    accept_offer,
+    bulk_fill_slots,
+    create_offer,
+    release_slot,
+)
 
 
 class SchedulingTestCase(TestCase):
@@ -335,3 +340,57 @@ class AcceptOfferTests(SchedulingTestCase):
 
         with self.assertRaises(OfferOutdatedError):
             accept_offer(offer.pk, s1)
+
+
+class ReleaseSlotTests(SchedulingTestCase):
+    def test_frees_slot(self):
+        release_slot(self.slots[0].pk, self.students[0])
+
+        self.assertIsNone(self.owner_of(self.slots[0]))
+
+    def test_raises_if_not_owner(self):
+        with self.assertRaises(NotSlotOwnerError):
+            release_slot(self.slots[0].pk, self.students[1])
+
+    def test_raises_if_slot_is_already_free(self):
+        with self.assertRaises(NotSlotOwnerError):
+            release_slot(self.slots[8].pk, self.students[0])
+
+    def test_raises_if_deadline_passed(self):
+        Exam.objects.filter(pk=self.exam.pk).update(
+            slots_change_deadline=now() - timedelta(minutes=1)
+        )
+
+        with self.assertRaises(DeadlinePassedError):
+            release_slot(self.slots[0].pk, self.students[0])
+
+        self.assertEqual(self.owner_of(self.slots[0]), self.students[0])
+
+    def test_cancels_awaiting_offers_involving_slot(self):
+        s0, s1, _ = self.students
+        as_offered = create_offer(s0, self.slots[0], self.slots[1])
+        as_wanted = create_offer(s1, self.slots[1], self.slots[0])
+        unrelated = create_offer(s1, self.slots[1], self.slots[2])
+
+        release_slot(self.slots[0].pk, s0)
+
+        as_offered.refresh_from_db()
+        as_wanted.refresh_from_db()
+        unrelated.refresh_from_db()
+        self.assertEqual(as_offered.status, Offer.Status.CANCELED)
+        self.assertEqual(as_wanted.status, Offer.Status.CANCELED)
+        self.assertEqual(unrelated.status, Offer.Status.AWAITING)
+
+    def test_keeps_finished_offers(self):
+        s0 = self.students[0]
+        expired = create_offer(s0, self.slots[0], self.slots[1])
+        Offer.objects.filter(pk=expired.pk).update(status=Offer.Status.EXPIRED)
+        accepted = create_offer(s0, self.slots[0], self.slots[1])
+        Offer.objects.filter(pk=accepted.pk).update(status=Offer.Status.ACCEPTED)
+
+        release_slot(self.slots[0].pk, s0)
+
+        expired.refresh_from_db()
+        accepted.refresh_from_db()
+        self.assertEqual(expired.status, Offer.Status.EXPIRED)
+        self.assertEqual(accepted.status, Offer.Status.ACCEPTED)
