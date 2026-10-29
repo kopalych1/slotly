@@ -17,6 +17,9 @@ from scheduling.exceptions import (
     OfferNotAwaitingError,
     OfferOutdatedError,
     SameSlotError,
+    SlotAlreadyOwnedError,
+    SlotChangedError,
+    SlotNotFreeError,
     SlotsAlreadyExistError,
     WantedSlotFreeError,
 )
@@ -154,3 +157,47 @@ def release_slot(slot_id: int, user: User) -> None:
         Offer.objects.filter(
             Q(offered_slot=slot) | Q(wanted_slot=slot), status=Offer.Status.AWAITING
         ).update(status=Offer.Status.CANCELED)
+
+
+def take_slot(slot_id: int, user: User) -> Slot:
+
+    exam_id = Slot.objects.values_list('exam_id', flat=True).get(pk=slot_id)
+    current_id = (
+        Slot.objects.filter(exam_id=exam_id, owner=user)
+        .values_list('pk', flat=True)
+        .first()
+    )
+
+    with transaction.atomic():
+        locked = {
+            s.pk: s
+            for s in Slot.objects.select_for_update()
+            .filter(pk__in=(current_id, slot_id))
+            .order_by('pk')
+        }
+
+        slot = locked[slot_id]
+        user_slot = locked.get(current_id)
+        if user_slot is not None and user_slot.owner_id != user.pk:  # pyright: ignore[reportAttributeAccessIssue]
+            raise SlotChangedError()
+
+        if slot.owner_id == user.pk:  # pyright: ignore[reportAttributeAccessIssue]
+            raise SlotAlreadyOwnedError()
+        if slot.owner_id:  # pyright: ignore[reportAttributeAccessIssue]
+            raise SlotNotFreeError()
+        if now() >= slot.exam.slots_change_deadline:
+            raise DeadlinePassedError()
+
+        slot.owner = user  # pyright: ignore[reportAttributeAccessIssue]
+        slot.save(update_fields=['owner'])
+
+        if user_slot:
+            user_slot.owner = None
+            user_slot.save(update_fields=['owner'])
+
+            Offer.objects.filter(
+                Q(offered_slot=user_slot) | Q(wanted_slot=user_slot),
+                status=Offer.Status.AWAITING,
+            ).update(status=Offer.Status.CANCELED)
+
+        return slot

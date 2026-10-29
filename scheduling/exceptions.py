@@ -72,3 +72,19 @@ class OfferOutdatedError(AcceptOfferError):
 
 class NotWantedSlotOwnerError(AcceptOfferError):
     message = _('You do not hold the slot this offer is for')
+
+
+class SlotActionError(SchedulingError):
+    message = _('This action cannot be performed on the slot')
+
+
+class SlotNotFreeError(SlotActionError):
+    message = _('This slot is already taken')
+
+
+class SlotAlreadyOwnedError(SlotActionError):
+    message = _('You already hold this slot')
+
+
+class SlotChangedError(SlotActionError):
+    message = _('Your slot has changed, please refresh the page and try again')

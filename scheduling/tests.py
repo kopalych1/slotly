@@ -16,6 +16,8 @@ from scheduling.exceptions import (
     OfferNotAwaitingError,
     OfferOutdatedError,
     SameSlotError,
+    SlotAlreadyOwnedError,
+    SlotNotFreeError,
     SlotsAlreadyExistError,
     WantedSlotFreeError,
 )
@@ -25,6 +27,7 @@ from scheduling.services import (
     bulk_fill_slots,
     create_offer,
     release_slot,
+    take_slot,
 )
 
 
@@ -394,3 +397,70 @@ class ReleaseSlotTests(SchedulingTestCase):
         accepted.refresh_from_db()
         self.assertEqual(expired.status, Offer.Status.EXPIRED)
         self.assertEqual(accepted.status, Offer.Status.ACCEPTED)
+
+
+class TakeSlotTests(SchedulingTestCase):
+    def test_takes_free_slot_when_user_has_none(self):
+        newbie = User.objects.create_user(
+            username='student3', password='pass', role=User.Role.STUDENT
+        )
+
+        take_slot(self.slots[3].pk, newbie)
+
+        self.assertEqual(self.owner_of(self.slots[3]), newbie)
+
+    def test_moves_user_to_free_slot(self):
+        s0 = self.students[0]
+
+        take_slot(self.slots[3].pk, s0)
+
+        self.assertEqual(self.owner_of(self.slots[3]), s0)
+        self.assertIsNone(self.owner_of(self.slots[0]))
+
+    def test_cancels_awaiting_offers_on_old_slot(self):
+        s0, s1, _ = self.students
+        as_offered = create_offer(s0, self.slots[0], self.slots[1])
+        as_wanted = create_offer(s1, self.slots[1], self.slots[0])
+        unrelated = create_offer(s1, self.slots[1], self.slots[2])
+
+        take_slot(self.slots[3].pk, s0)
+
+        as_offered.refresh_from_db()
+        as_wanted.refresh_from_db()
+        unrelated.refresh_from_db()
+        self.assertEqual(as_offered.status, Offer.Status.CANCELED)
+        self.assertEqual(as_wanted.status, Offer.Status.CANCELED)
+        self.assertEqual(unrelated.status, Offer.Status.AWAITING)
+
+    def test_keeps_finished_offers(self):
+        s0 = self.students[0]
+        expired = create_offer(s0, self.slots[0], self.slots[1])
+        Offer.objects.filter(pk=expired.pk).update(status=Offer.Status.EXPIRED)
+
+        take_slot(self.slots[3].pk, s0)
+
+        expired.refresh_from_db()
+        self.assertEqual(expired.status, Offer.Status.EXPIRED)
+
+    def test_raises_if_slot_is_taken(self):
+        s0 = self.students[0]
+
+        with self.assertRaises(SlotNotFreeError):
+            take_slot(self.slots[1].pk, s0)
+
+        self.assertEqual(self.owner_of(self.slots[0]), s0)
+
+    def test_raises_if_slot_is_already_yours(self):
+        with self.assertRaises(SlotAlreadyOwnedError):
+            take_slot(self.slots[0].pk, self.students[0])
+
+    def test_raises_if_deadline_passed(self):
+        Exam.objects.filter(pk=self.exam.pk).update(
+            slots_change_deadline=now() - timedelta(minutes=1)
+        )
+
+        with self.assertRaises(DeadlinePassedError):
+            take_slot(self.slots[3].pk, self.students[0])
+
+        self.assertEqual(self.owner_of(self.slots[0]), self.students[0])
+        self.assertIsNone(self.owner_of(self.slots[3]))
