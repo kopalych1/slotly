@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from scheduling.services import bulk_fill_slots
 
-from .models import Exam, ExamDay, Offer, Slot, SwapLog
+from .models import Enrollment, Exam, ExamDay, Invite, Offer, Slot, SwapLog
 
 
 @admin.register(Exam)
@@ -54,3 +54,24 @@ class SwapLogAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Invite)
+class InviteAdmin(admin.ModelAdmin):
+    readonly_fields = ('token', 'usage_counter')
+    list_display = (
+        'exam',
+        'name',
+        'email',
+        'usage_counter',
+        'usage_limit',
+        'expires_at',
+        'is_revoked',
+    )
+    list_filter = ('exam', 'is_revoked')
+
+
+@admin.register(Enrollment)
+class EnrollmentAdmin(admin.ModelAdmin):
+    list_display = ('exam', 'user', 'created_at')
+    list_filter = ('exam',)

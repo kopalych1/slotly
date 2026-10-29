@@ -1,3 +1,4 @@
+import secrets
 from datetime import timedelta
 
 from django.core.exceptions import ValidationError
@@ -10,6 +11,10 @@ from django.utils.translation import gettext_lazy as _
 
 def day_from_now():
     return now() + timedelta(days=1)
+
+
+def generate_invite_token():
+    return secrets.token_urlsafe(32)
 
 
 class Exam(models.Model):
@@ -209,3 +214,82 @@ class SwapLog(models.Model):
 
     def __str__(self):
         return f'{self.exam_name} {self.exchange_datetime:%Y-%m-%d %H:%M} {self.sender_name} {self.receiver_name}'
+
+
+class Enrollment(models.Model):
+    exam = models.ForeignKey(
+        'scheduling.Exam', verbose_name=_('Exam'), on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(
+        'accounts.User', verbose_name=_('User'), on_delete=models.CASCADE
+    )
+    created_at = models.DateTimeField(_('Created at'), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('Enrollment')
+        verbose_name_plural = _('Enrollments')
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=['exam', 'user'],
+                name='unique_enrollment_per_exam_user',
+            ),
+        )
+
+    def __str__(self):
+        return f'{self.exam.name} - {self.user}'
+
+
+class Invite(models.Model):
+    exam = models.ForeignKey(
+        'scheduling.Exam', verbose_name=_('Exam'), on_delete=models.CASCADE
+    )
+    token = models.CharField(
+        _('Token'),
+        max_length=64,
+        unique=True,
+        default=generate_invite_token,
+        editable=False,
+    )
+    name = models.CharField(
+        _(
+            'Student name',
+        ),
+        blank=True,
+        default='',
+        max_length=100,
+    )
+    email = models.EmailField(
+        _(
+            'Student email',
+        ),
+        blank=True,
+        default='',
+        max_length=254,
+    )
+    usage_counter = models.PositiveIntegerField(
+        _('Usage counter'), default=0, editable=False
+    )
+    usage_limit = models.PositiveIntegerField(_('Usage limit'), null=True, blank=True)
+    expires_at = models.DateTimeField(_('Expires at'), null=True, blank=True)
+    is_revoked = models.BooleanField(_('Is revoked'), default=False)
+
+    class Meta:
+        verbose_name = _('Invite')
+        verbose_name_plural = _('Invites')
+
+        constraints = (
+            models.CheckConstraint(
+                condition=models.Q(usage_limit__isnull=True)
+                | models.Q(usage_counter__lte=models.F('usage_limit')),
+                name='invite_usage_within_limit',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(usage_limit__isnull=True)
+                | models.Q(usage_limit__gt=0),
+                name='invite_usage_limit_positive',
+            ),
+        )
+
+    def __str__(self):
+        return f'{self.exam} - {self.name or "shared"}'
