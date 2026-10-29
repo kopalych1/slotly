@@ -9,3 +9,7 @@ class User(AbstractUser):
         STUDENT = 'STU', _('Student')
 
     role = models.CharField('Role', choices=Role, default=Role.STUDENT, max_length=20)
+
+    @property
+    def is_teacher(self) -> bool:
+        return self.role == User.Role.TEACHER
