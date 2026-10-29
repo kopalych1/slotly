@@ -1,3 +1,337 @@
-from django.test import TestCase
+from datetime import timedelta
 
-# Create your tests here.
+from django.test import TestCase
+from django.utils.timezone import now
+
+from accounts.models import User
+from scheduling.exceptions import (
+    DayShorterThanSlotError,
+    DeadlinePassedError,
+    DifferentExamError,
+    DuplicateOfferError,
+    InvalidDayRangeError,
+    NotSlotOwnerError,
+    NotWantedSlotOwnerError,
+    OfferExpiredError,
+    OfferNotAwaitingError,
+    OfferOutdatedError,
+    SameSlotError,
+    SlotsAlreadyExistError,
+    WantedSlotFreeError,
+)
+from scheduling.models import Exam, ExamDay, Offer, Slot, SwapLog
+from scheduling.services import accept_offer, bulk_fill_slots, create_offer
+
+
+class SchedulingTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.teacher = User.objects.create_user(
+            username='teacher', password='pass', role=User.Role.TEACHER
+        )
+        cls.students = [
+            User.objects.create_user(
+                username=f'student{i}', password='pass', role=User.Role.STUDENT
+            )
+            for i in range(3)
+        ]
+        cls.exam = Exam.objects.create(
+            name='Test exam',
+            owner=cls.teacher,
+            slot_duration=20,
+            slots_change_deadline=now() + timedelta(days=7),
+        )
+        cls.examday = ExamDay.objects.create(
+            exam=cls.exam,
+            start=now() + timedelta(days=7),
+            end=now() + timedelta(days=7, hours=3),
+        )
+        cls.slots = bulk_fill_slots(cls.examday)  # 9 slots
+
+        for slot, student in zip(cls.slots, cls.students):
+            slot.owner = student  # pyright: ignore[reportAttributeAccessIssue]
+            slot.save()
+
+    @staticmethod
+    def owner_of(slot: Slot):
+        return Slot.objects.get(pk=slot.pk).owner
+
+
+class BulkFillSlotsTests(TestCase):
+    def make_day(self, hours: float, start=None) -> ExamDay:
+        if start is None:
+            start = now() + timedelta(days=1)
+        return ExamDay.objects.create(
+            exam=self.exam, start=start, end=start + timedelta(hours=hours)
+        )
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.teacher = User.objects.create_user(
+            username='teacher', password='pass', role=User.Role.TEACHER
+        )
+        cls.exam = Exam.objects.create(
+            name='Test exam',
+            owner=cls.teacher,
+            slot_duration=20,
+            slots_change_deadline=now() + timedelta(days=7),
+        )
+
+    def test_creates_slot_per_duration(self):
+        start = now() + timedelta(days=1)
+        day = self.make_day(start=start, hours=3)
+
+        bulk_fill_slots(day)
+
+        slots = Slot.objects.filter(exam_day=day).order_by('start')
+
+        self.assertEqual(slots.count(), 9)
+        self.assertEqual(slots.first().start, start)  # pyright: ignore[reportOptionalMemberAccess]
+        self.assertEqual(slots.last().start, start + timedelta(minutes=160))  # pyright: ignore[reportOptionalMemberAccess]
+
+    def test_raises_if_slots_already_exist(self):
+
+        day = self.make_day(hours=3)
+        bulk_fill_slots(day)
+
+        with self.assertRaises(SlotsAlreadyExistError):
+            bulk_fill_slots(day)
+
+    def test_raises_if_day_shorter_than_slot(self):
+
+        short_day = self.make_day(5 / 60)
+
+        with self.assertRaises(DayShorterThanSlotError):
+            bulk_fill_slots(short_day)
+
+    def test_raises_if_end_before_start(self):
+
+        day = ExamDay.objects.create(
+            exam=self.exam,
+            start=now() + timedelta(days=2),
+            end=now() + timedelta(days=1),
+        )
+
+        with self.assertRaises(InvalidDayRangeError):
+            bulk_fill_slots(day)
+
+
+class CreateOfferTests(SchedulingTestCase):
+    def test_creates_offer(self):
+        offer = create_offer(
+            self.students[0],
+            self.slots[0],
+            self.slots[1],
+        )
+
+        self.assertEqual(Offer.objects.count(), 1)
+        self.assertEqual(offer.offeror, self.students[0])
+        self.assertEqual(offer.offered_slot, self.slots[0])
+        self.assertEqual(offer.wanted_slot, self.slots[1])
+        self.assertEqual(offer.status, Offer.Status.AWAITING)
+        self.assertLessEqual(offer.expires_at, self.exam.slots_change_deadline)
+        self.assertLessEqual(offer.expires_at, now() + timedelta(hours=25))
+        self.assertGreaterEqual(offer.expires_at, now() + timedelta(hours=23))
+
+    def test_raises_if_student_not_owner_of_slot(self):
+        with self.assertRaises(NotSlotOwnerError):
+            create_offer(self.students[0], self.slots[1], self.slots[0])
+
+    def test_raises_if_wanted_slot_and_owned_slot_are_same(self):
+        with self.assertRaises(SameSlotError):
+            create_offer(self.students[0], self.slots[0], self.slots[0])
+
+    def test_raises_if_wanted_slot_is_free(self):
+        with self.assertRaises(WantedSlotFreeError):
+            create_offer(self.students[0], self.slots[0], self.slots[8])
+
+    def test_different_exam_slot(self):
+        different_exam = Exam.objects.create(
+            name='Fake Exam',
+            owner=self.teacher,
+            slots_change_deadline=now() + timedelta(days=7),
+        )
+        different_slot = bulk_fill_slots(
+            ExamDay.objects.create(
+                exam=different_exam,
+                start=now() + timedelta(days=7),
+                end=now() + timedelta(days=7, hours=1),
+            )
+        )[0]
+
+        # Slot must be owned not to throw WantedSlotFreeError
+        different_slot.owner = self.students[2]  # pyright: ignore[reportAttributeAccessIssue]
+        different_slot.save()
+
+        with self.assertRaises(DifferentExamError):
+            create_offer(self.students[0], self.slots[0], different_slot)
+
+    def test_passed_deadline_slot(self):
+
+        self.exam.slots_change_deadline = now() - timedelta(days=1)
+        self.exam.save()
+
+        with self.assertRaises(DeadlinePassedError):
+            create_offer(self.students[0], self.slots[0], self.slots[1])
+
+    def test_same_offer_twice(self):
+        create_offer(self.students[0], self.slots[0], self.slots[1])
+        with self.assertRaises(DuplicateOfferError):
+            create_offer(self.students[0], self.slots[0], self.slots[1])
+
+    def test_old_offer_expired(self):
+        old_offer = create_offer(self.students[0], self.slots[0], self.slots[1])
+
+        old_offer.expires_at = now()
+        old_offer.save()
+
+        offer = create_offer(self.students[0], self.slots[0], self.slots[1])
+
+        old_offer = Offer.objects.get(pk=old_offer.pk)
+
+        self.assertEqual(old_offer.status, Offer.Status.EXPIRED)
+        self.assertEqual(offer.status, Offer.Status.AWAITING)
+
+    def test_expiry_is_capped_by_exam_deadline(self):
+        deadline = now() + timedelta(hours=2)
+        Exam.objects.filter(pk=self.exam.pk).update(slots_change_deadline=deadline)
+        offered = Slot.objects.get(pk=self.slots[0].pk)
+        wanted = Slot.objects.get(pk=self.slots[1].pk)
+
+        offer = create_offer(self.students[0], offered, wanted)
+
+        self.assertEqual(offer.expires_at, deadline)
+
+    def test_raises_if_offered_slot_is_free(self):
+        with self.assertRaises(NotSlotOwnerError):
+            create_offer(self.students[0], self.slots[8], self.slots[1])
+
+
+class AcceptOfferTests(SchedulingTestCase):
+    def test_swaps_slot_owners(self):
+        s0, s1, _ = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+
+        accept_offer(offer.pk, s1)
+
+        self.assertEqual(self.owner_of(self.slots[0]), s1)
+        self.assertEqual(self.owner_of(self.slots[1]), s0)
+
+    def test_marks_offer_accepted(self):
+        s0, s1, _ = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+
+        accept_offer(offer.pk, s1)
+
+        offer.refresh_from_db()
+        self.assertEqual(offer.status, Offer.Status.ACCEPTED)
+
+    def test_writes_swap_log_snapshot(self):
+        s0, s1, _ = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+
+        log = accept_offer(offer.pk, s1)
+
+        self.assertEqual(SwapLog.objects.count(), 1)
+        self.assertEqual(log.offer, offer)
+        self.assertEqual(log.sender, s0)
+        self.assertEqual(log.receiver, s1)
+        self.assertEqual(log.sender_name, 'student0')
+        self.assertEqual(log.receiver_name, 'student1')
+        self.assertEqual(log.sender_slot_datetime, self.slots[0].start)
+        self.assertEqual(log.receiver_slot_datetime, self.slots[1].start)
+        self.assertEqual(log.exam_name, 'Test exam')
+
+    def test_cancels_other_awaiting_offers_of_participants(self):
+        s0, s1, _ = self.students
+        main = create_offer(s0, self.slots[0], self.slots[1])
+
+        other_from_offeror = create_offer(s0, self.slots[0], self.slots[2])
+
+        other_from_acceptor = create_offer(s1, self.slots[1], self.slots[2])
+
+        accept_offer(main.pk, s1)
+
+        other_from_offeror.refresh_from_db()
+        other_from_acceptor.refresh_from_db()
+        self.assertEqual(other_from_offeror.status, Offer.Status.CANCELED)
+        self.assertEqual(other_from_acceptor.status, Offer.Status.CANCELED)
+
+    def test_keeps_offers_of_third_parties(self):
+        s0, s1, s2 = self.students
+        main = create_offer(s0, self.slots[0], self.slots[1])
+        third_party = create_offer(s2, self.slots[2], self.slots[1])
+
+        accept_offer(main.pk, s1)
+
+        third_party.refresh_from_db()
+        self.assertEqual(third_party.status, Offer.Status.AWAITING)
+
+    def test_does_not_touch_finished_offers(self):
+        s0, s1, _ = self.students
+        old = create_offer(s0, self.slots[0], self.slots[1])
+        Offer.objects.filter(pk=old.pk).update(status=Offer.Status.EXPIRED)
+        new = create_offer(s0, self.slots[0], self.slots[1])
+
+        accept_offer(new.pk, s1)
+
+        old.refresh_from_db()
+        self.assertEqual(old.status, Offer.Status.EXPIRED)
+
+    def test_new_owner_can_accept_offer_for_swapped_slot(self):
+        s0, s1, s2 = self.students
+        first = create_offer(s0, self.slots[0], self.slots[1])
+
+        second = create_offer(s2, self.slots[2], self.slots[1])
+
+        accept_offer(first.pk, s1)
+
+        with self.assertRaises(NotWantedSlotOwnerError):
+            accept_offer(second.pk, s1)
+
+        accept_offer(second.pk, s0)
+        self.assertEqual(self.owner_of(self.slots[1]), s2)
+
+    def test_raises_if_offer_already_accepted(self):
+        s0, s1, _ = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+        accept_offer(offer.pk, s1)
+
+        with self.assertRaises(OfferNotAwaitingError):
+            accept_offer(offer.pk, s1)
+
+    def test_raises_if_offer_expired(self):
+        s0, s1, _ = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+        Offer.objects.filter(pk=offer.pk).update(
+            expires_at=now() - timedelta(minutes=1)
+        )
+
+        with self.assertRaises(OfferExpiredError):
+            accept_offer(offer.pk, s1)
+
+    def test_raises_if_deadline_passed(self):
+        s0, s1, _ = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+        Exam.objects.filter(pk=self.exam.pk).update(
+            slots_change_deadline=now() - timedelta(minutes=1)
+        )
+
+        with self.assertRaises(DeadlinePassedError):
+            accept_offer(offer.pk, s1)
+
+    def test_raises_if_acceptor_does_not_own_wanted_slot(self):
+        s0, _, s2 = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+
+        with self.assertRaises(NotWantedSlotOwnerError):
+            accept_offer(offer.pk, s2)
+
+    def test_raises_if_offeror_lost_the_slot(self):
+        s0, s1, _ = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+
+        Slot.objects.filter(pk=self.slots[0].pk).update(owner=None)
+
+        with self.assertRaises(OfferOutdatedError):
+            accept_offer(offer.pk, s1)
