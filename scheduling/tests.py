@@ -10,6 +10,7 @@ from scheduling.exceptions import (
     DifferentExamError,
     DuplicateOfferError,
     InvalidDayRangeError,
+    NotEnrolledError,
     NotSlotOwnerError,
     NotWantedSlotOwnerError,
     OfferExpiredError,
@@ -22,7 +23,7 @@ from scheduling.exceptions import (
     SlotsAlreadyExistError,
     WantedSlotFreeError,
 )
-from scheduling.models import Exam, ExamDay, Offer, Slot, SwapLog
+from scheduling.models import Enrollment, Exam, ExamDay, Offer, Slot, SwapLog
 from scheduling.services import (
     accept_offer,
     bulk_fill_slots,
@@ -50,6 +51,9 @@ class SchedulingTestCase(TestCase):
             owner=cls.teacher,
             slot_duration=20,
             slots_change_deadline=now() + timedelta(days=7),
+        )
+        Enrollment.objects.bulk_create(
+            Enrollment(exam=cls.exam, user=student) for student in cls.students
         )
         cls.examday = ExamDay.objects.create(
             exam=cls.exam,
@@ -454,6 +458,7 @@ class TakeSlotTests(SchedulingTestCase):
         newbie = User.objects.create_user(
             username='student3', password='pass', role=User.Role.STUDENT
         )
+        Enrollment.objects.create(exam=self.exam, user=newbie)
 
         take_slot(self.slots[3].pk, newbie)
 
@@ -569,3 +574,54 @@ class DeclineOfferTests(SchedulingTestCase):
         decline_offer(second.pk, s0)
         second.refresh_from_db()
         self.assertEqual(second.status, Offer.Status.CANCELED)
+
+
+class EnrollmentCheckTests(SchedulingTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.outsider = User.objects.create_user(
+            username='outsider', password='pass', role=User.Role.STUDENT
+        )
+
+    def test_create_offer_requires_enrollment(self):
+        with self.assertRaises(NotEnrolledError):
+            create_offer(self.outsider, self.slots[0], self.slots[1])
+
+        self.assertEqual(Offer.objects.count(), 0)
+
+    def test_accept_offer_requires_enrollment(self):
+        offer = create_offer(self.students[0], self.slots[0], self.slots[1])
+
+        with self.assertRaises(NotEnrolledError):
+            accept_offer(offer.pk, self.outsider)
+
+        offer.refresh_from_db()
+        self.assertEqual(offer.status, Offer.Status.AWAITING)
+
+    def test_decline_offer_requires_enrollment(self):
+        offer = create_offer(self.students[0], self.slots[0], self.slots[1])
+
+        with self.assertRaises(NotEnrolledError):
+            decline_offer(offer.pk, self.outsider)
+
+        offer.refresh_from_db()
+        self.assertEqual(offer.status, Offer.Status.AWAITING)
+
+    def test_take_slot_requires_enrollment(self):
+        with self.assertRaises(NotEnrolledError):
+            take_slot(self.slots[3].pk, self.outsider)
+
+        self.assertIsNone(self.owner_of(self.slots[3]))
+
+    def test_release_slot_requires_enrollment(self):
+        with self.assertRaises(NotEnrolledError):
+            release_slot(self.slots[0].pk, self.outsider)
+
+        self.assertEqual(self.owner_of(self.slots[0]), self.students[0])
+
+    def test_removed_student_cannot_act(self):
+        Enrollment.objects.filter(exam=self.exam, user=self.students[0]).delete()
+
+        with self.assertRaises(NotEnrolledError):
+            release_slot(self.slots[0].pk, self.students[0])

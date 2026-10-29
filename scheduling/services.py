@@ -11,6 +11,7 @@ from scheduling.exceptions import (
     DifferentExamError,
     DuplicateOfferError,
     InvalidDayRangeError,
+    NotEnrolledError,
     NotSlotOwnerError,
     NotWantedSlotOwnerError,
     OfferExpiredError,
@@ -24,7 +25,12 @@ from scheduling.exceptions import (
     SlotsAlreadyExistError,
     WantedSlotFreeError,
 )
-from scheduling.models import ExamDay, Offer, Slot, SwapLog
+from scheduling.models import Enrollment, ExamDay, Offer, Slot, SwapLog
+
+
+def ensure_enrolled(user: User, exam_id: int) -> None:
+    if not Enrollment.objects.filter(user=user, exam_id=exam_id).exists():
+        raise NotEnrolledError()
 
 
 def bulk_fill_slots(examday: ExamDay) -> list[Slot]:
@@ -57,6 +63,7 @@ MAX_ACTIVE_OFFERS = 3
 
 
 def create_offer(offeror: User, offered_slot: Slot, wanted_slot: Slot) -> Offer:
+    ensure_enrolled(offeror, exam_id=offered_slot.exam_id)
     if offered_slot.owner_id != offeror.pk:  # pyright: ignore[reportAttributeAccessIssue]
         raise NotSlotOwnerError()
     if offered_slot.pk == wanted_slot.pk:
@@ -115,6 +122,7 @@ def accept_offer(offer_id: int, acceptor: User) -> SwapLog:
         wanted_slot = locked[offer.wanted_slot_id]  # pyright: ignore[reportAttributeAccessIssue]
         offered_slot = locked[offer.offered_slot_id]  # pyright: ignore[reportAttributeAccessIssue]
 
+        ensure_enrolled(acceptor, exam_id=wanted_slot.exam_id)
         if offer.status != Offer.Status.AWAITING:
             raise OfferNotAwaitingError()
         if offer.expires_at <= now():
@@ -157,6 +165,8 @@ def release_slot(slot_id: int, user: User) -> None:
     with transaction.atomic():
         slot = Slot.objects.select_for_update().get(pk=slot_id)
 
+        ensure_enrolled(user, exam_id=slot.exam_id)
+
         if slot.owner_id != user.pk:  # pyright: ignore[reportAttributeAccessIssue]
             raise NotSlotOwnerError()
 
@@ -190,6 +200,9 @@ def take_slot(slot_id: int, user: User) -> Slot:
 
         slot = locked[slot_id]
         user_slot = locked.get(current_id)
+
+        ensure_enrolled(user, exam_id=slot.exam_id)
+
         if user_slot is not None and user_slot.owner_id != user.pk:  # pyright: ignore[reportAttributeAccessIssue]
             raise SlotChangedError()
 
@@ -222,6 +235,8 @@ def decline_offer(offer_id: int, user: User):
             .select_for_update(of=('self',))
             .get(pk=offer_id)
         )
+
+        ensure_enrolled(user, exam_id=offer.wanted_slot.exam_id)
 
         if offer.status != Offer.Status.AWAITING:
             raise OfferNotAwaitingError()

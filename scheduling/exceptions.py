@@ -10,6 +10,10 @@ class SchedulingError(Exception):
         super().__init__(message or self.message)
 
 
+class NotEnrolledError(SchedulingError):
+    message = _('The user is not enrolled for this exam')
+
+
 class SlotGenerationError(SchedulingError):
     message = _('Slots cannot be generated for this day')
 
