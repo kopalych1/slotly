@@ -13,6 +13,7 @@ from scheduling.exceptions import (
     NotSlotOwnerError,
     NotWantedSlotOwnerError,
     OfferExpiredError,
+    OfferLimitError,
     OfferNotAwaitingError,
     OfferOutdatedError,
     SameSlotError,
@@ -214,6 +215,54 @@ class CreateOfferTests(SchedulingTestCase):
     def test_raises_if_offered_slot_is_free(self):
         with self.assertRaises(NotSlotOwnerError):
             create_offer(self.students[0], self.slots[8], self.slots[1])
+
+
+class OfferLimitTests(SchedulingTestCase):
+    def make_extra_owned_slots(self, count):
+        slots = []
+        for i in range(count):
+            user = User.objects.create_user(
+                username=f'extra{i}', password='pass', role=User.Role.STUDENT
+            )
+            slot = self.slots[3 + i]
+            slot.owner = user  # pyright: ignore[reportAttributeAccessIssue]
+            slot.save()
+            slots.append(slot)
+        return slots
+
+    def fill_limit(self):
+        extra = self.make_extra_owned_slots(2)
+        wanted = [self.slots[1], self.slots[2], extra[0]]
+        offers = [
+            create_offer(self.students[0], self.slots[0], slot) for slot in wanted
+        ]
+        return offers, extra[1]  # extra[1] нужен для четвёртой попытки
+
+    def test_raises_when_limit_reached(self):
+        _, fourth_wanted = self.fill_limit()
+
+        with self.assertRaises(OfferLimitError):
+            create_offer(self.students[0], self.slots[0], fourth_wanted)
+
+        self.assertEqual(Offer.objects.count(), 3)
+
+    def test_finished_offers_do_not_count(self):
+        offers, fourth_wanted = self.fill_limit()
+        Offer.objects.filter(pk=offers[0].pk).update(status=Offer.Status.CANCELED)
+
+        offer = create_offer(self.students[0], self.slots[0], fourth_wanted)
+
+        self.assertEqual(offer.status, Offer.Status.AWAITING)
+
+    def test_expired_offers_do_not_count(self):
+        offers, fourth_wanted = self.fill_limit()
+        Offer.objects.filter(pk=offers[0].pk).update(
+            expires_at=now() - timedelta(minutes=1)
+        )
+
+        offer = create_offer(self.students[0], self.slots[0], fourth_wanted)
+
+        self.assertEqual(offer.status, Offer.Status.AWAITING)
 
 
 class AcceptOfferTests(SchedulingTestCase):

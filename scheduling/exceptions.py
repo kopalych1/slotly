@@ -54,6 +54,10 @@ class DuplicateOfferError(OfferError):
     message = _('You already have an active offer for this pair of slots')
 
 
+class OfferLimitError(OfferError):
+    message = _('You have reached the limit for offers')
+
+
 class AcceptOfferError(SchedulingError):
     message = _('Offer cannot be accepted')
 

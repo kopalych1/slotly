@@ -14,6 +14,7 @@ from scheduling.exceptions import (
     NotSlotOwnerError,
     NotWantedSlotOwnerError,
     OfferExpiredError,
+    OfferLimitError,
     OfferNotAwaitingError,
     OfferOutdatedError,
     SameSlotError,
@@ -52,6 +53,7 @@ def bulk_fill_slots(examday: ExamDay) -> list[Slot]:
 
 
 OFFER_LIFETIME = timedelta(days=1)
+MAX_ACTIVE_OFFERS = 3
 
 
 def create_offer(offeror: User, offered_slot: Slot, wanted_slot: Slot) -> Offer:
@@ -68,6 +70,16 @@ def create_offer(offeror: User, offered_slot: Slot, wanted_slot: Slot) -> Offer:
     current_time = now()
     if current_time >= deadline:
         raise DeadlinePassedError()
+
+    current_offers = Offer.objects.filter(
+        offered_slot__exam_id=offered_slot.exam_id,
+        offeror=offeror,
+        status=Offer.Status.AWAITING,
+        expires_at__gt=current_time,
+    ).count()
+
+    if current_offers >= MAX_ACTIVE_OFFERS:
+        raise OfferLimitError()
 
     try:
         with transaction.atomic():
