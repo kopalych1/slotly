@@ -26,6 +26,7 @@ from scheduling.services import (
     accept_offer,
     bulk_fill_slots,
     create_offer,
+    decline_offer,
     release_slot,
     take_slot,
 )
@@ -464,3 +465,58 @@ class TakeSlotTests(SchedulingTestCase):
 
         self.assertEqual(self.owner_of(self.slots[0]), self.students[0])
         self.assertIsNone(self.owner_of(self.slots[3]))
+
+
+class DeclineOfferTests(SchedulingTestCase):
+    def test_recipient_declines_offer(self):
+        s0, s1, _ = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+
+        decline_offer(offer.pk, s1)
+
+        offer.refresh_from_db()
+        self.assertEqual(offer.status, Offer.Status.CANCELED)
+        self.assertEqual(self.owner_of(self.slots[0]), s0)
+        self.assertEqual(self.owner_of(self.slots[1]), s1)
+
+    def test_raises_if_not_wanted_slot_owner(self):
+        s0, _, s2 = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+
+        with self.assertRaises(NotWantedSlotOwnerError):
+            decline_offer(offer.pk, s2)
+
+        offer.refresh_from_db()
+        self.assertEqual(offer.status, Offer.Status.AWAITING)
+
+    def test_raises_if_offer_already_accepted(self):
+        s0, s1, _ = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+        accept_offer(offer.pk, s1)
+
+        with self.assertRaises(OfferNotAwaitingError):
+            decline_offer(offer.pk, s0)
+
+        offer.refresh_from_db()
+        self.assertEqual(offer.status, Offer.Status.ACCEPTED)
+
+    def test_raises_if_offer_expired(self):
+        s0, s1, _ = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+        Offer.objects.filter(pk=offer.pk).update(status=Offer.Status.EXPIRED)
+
+        with self.assertRaises(OfferNotAwaitingError):
+            decline_offer(offer.pk, s1)
+
+    def test_new_slot_owner_can_decline(self):
+        s0, s1, s2 = self.students
+        first = create_offer(s0, self.slots[0], self.slots[1])
+        second = create_offer(s2, self.slots[2], self.slots[1])
+        accept_offer(first.pk, s1)  # слот 1 теперь у s0
+
+        with self.assertRaises(NotWantedSlotOwnerError):
+            decline_offer(second.pk, s1)
+
+        decline_offer(second.pk, s0)
+        second.refresh_from_db()
+        self.assertEqual(second.status, Offer.Status.CANCELED)

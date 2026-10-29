@@ -201,3 +201,20 @@ def take_slot(slot_id: int, user: User) -> Slot:
             ).update(status=Offer.Status.CANCELED)
 
         return slot
+
+
+def decline_offer(offer_id: int, user: User):
+    with transaction.atomic():
+        offer = (
+            Offer.objects.select_related('wanted_slot')
+            .select_for_update(of=('self',))
+            .get(pk=offer_id)
+        )
+
+        if offer.status != Offer.Status.AWAITING:
+            raise OfferNotAwaitingError()
+        if offer.wanted_slot.owner_id != user.pk:
+            raise NotWantedSlotOwnerError()
+
+        offer.status = Offer.Status.CANCELED
+        offer.save(update_fields=['status'])
