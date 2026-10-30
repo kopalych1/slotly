@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{{ exam.name }} · Slotly{% endblock %}
+
+{% block content %}
+<header class="exam-header">
+  <h1>{{ exam.name }}</h1>
+  <p class="muted">
+    {% trans 'Changes allowed until' %} {{ exam.slots_change_deadline|date:"d M, H:i" }}
+  </p>
+</header>
+
+<div class="board">
+  {% for examday in examdays %}
+    <section class="day" aria-labelledby="day-{{ examday.pk }}">
+      <h2 class="day__title" id="day-{{ examday.pk }}">{{ examday.start|date:"l, d M" }}</h2>
+      <ul class="slots">
+        {% for slot in examday.slot_set.all %}
+          <li class="slot {% if not slot.owner_id %}slot--free{% elif slot.owner_id == user.pk %}slot--mine{% else %}slot--taken{% endif %}">
+            <time class="slot__time" datetime="{{ slot.start|date:'c' }}">{{ slot.start|time:"H:i" }}</time>
+            <span class="slot__who">
+              {% if not slot.owner_id %}{% trans 'Free' %}
+              {% elif slot.owner_id == user.pk %}{% trans 'You' %}
+              {% else %}{{ slot.owner.get_full_name|default:slot.owner.username }}{% endif %}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% empty %}
+    <p class="muted">{% trans 'No exam days yet.' %}</p>
+  {% endfor %}
+</div>
+{% endblock %}
