@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load scheduling_extras %}
 {% load i18n %}
 {% block title %}{{ exam.name }} · Slotly{% endblock %}
 {% block content %}
@@ -19,68 +20,72 @@
         <h2 class="day__title" id="day-{{ examday.pk }}">{{ examday.start|date:"l, d M" }}</h2>
         <ul class="slots">
           {% for slot in examday.slot_set.all %}
-            <li class="slot {% if not slot.owner_id %}slot--free{% elif slot.owner_id == user.pk %}slot--mine{% else %}slot--taken{% endif %}">
-              <time class="slot__time"
-                    datetime="{{ slot.start|date:'c' }}">{{ slot.start|time:"H:i" }}</time>
-              <span class="slot__who">
-                {% if not slot.owner_id %}
-                  {% trans "Free" %}
-                {% elif slot.owner_id == user.pk %}
-                  {% trans "You" %}
-          {% else %}{{ slot.owner.get_full_name|default:slot.owner.username }}{% endif %}
-          {% if slot.pk in wanting_slot_ids %}
-            <svg class="slot__icon"
-                 width="16"
-                 height="16"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 role="img"
-                 aria-label="{% trans 'Wants to swap with you' %}">
-              <title>{% trans "Wants to swap with you" %}</title>
-              <path d="m17 2 4 4-4 4" />
-              <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
-              <path d="m7 22-4-4 4-4" />
-              <path d="M21 13v1a4 4 0 0 1-4 4H3" />
-            </svg>
-          {% endif %}
-            </span>
-            {% if not deadline_passed %}
-              {% if not slot.owner_id %}
-                <form method="post"
-                      action="{% url 'slot_take' slot.pk %}"
-                      {% if my_slot %}onsubmit="return confirm('{{ move_msg|escapejs }}')"{% endif %}>
-                  {% csrf_token %}
-                  <button class="btn btn--small btn--primary" type="submit">
-                    {% if my_slot %}
-                      {% trans "Move here" %}
-                    {% else %}
-                      {% trans "Take" %}
-                    {% endif %}
-                  </button>
-                </form>
-              {% elif slot.owner_id == user.pk %}
-                <form method="post" action="{% url 'slot_release' slot.pk %}">
-                  {% csrf_token %}
-                  <button class="btn btn--small btn--ghost"
-                          type="submit">{% trans "Release" %}</button>
-                </form>
-              {% elif slot.pk in offered_slot_ids %}
-                <span class="slot__badge">{% trans "Offer sent" %}</span>
-              {% elif my_slot and offers_left > 0 %}
-                <form method="post"
-                      action="{% url 'offer_create' slot.pk %}"
-                      onsubmit="return confirm('{{ offer_msg|escapejs }}')">
-                  {% csrf_token %}
-                  <button class="btn btn--small btn--ghost"
-                          type="submit">{% trans "Swap" %}</button>
-                </form>
+            {% with offer_id=incoming_offers|get_item:slot.pk %}
+              <li class="slot {% if not slot.owner_id %}slot--free{% elif slot.owner_id == user.pk %}slot--mine{% else %}slot--taken{% endif %}{% if offer_id %} slot--wants-me{% endif %}">
+                <div class="slot__main">
+                  <time class="slot__time"
+                        datetime="{{ slot.start|date:'c' }}">{{ slot.start|time:"H:i" }}</time>
+                  <span class="slot__who">
+                    {% if not slot.owner_id %}
+                      {% trans "Free" %}
+                    {% elif slot.owner_id == user.pk %}
+                      {% trans "You" %}
+            {% else %}{{ slot.owner.get_full_name|default:slot.owner.username }}{% endif %}
+              </span>
+              </div>
+              {% if offer_id %}
+                <span class="slot__pill">{% trans "Wants to swap with you" %}</span>
               {% endif %}
-            {% endif %}
-            </li>
+              {% if not deadline_passed %}
+                <div class="slot__actions">
+                  {% if not slot.owner_id %}
+                    <form method="post"
+                          action="{% url 'slot_take' slot.pk %}"
+                          {% if my_slot %}onsubmit="return confirm('{{ move_msg|escapejs }}')"{% endif %}>
+                      {% csrf_token %}
+                      <button class="btn btn--small btn--primary" type="submit">
+                        {% if my_slot %}
+                          {% trans "Move here" %}
+                        {% else %}
+                          {% trans "Take" %}
+                        {% endif %}
+                      </button>
+                    </form>
+                  {% elif slot.owner_id == user.pk %}
+                    <form method="post" action="{% url 'slot_release' slot.pk %}">
+                      {% csrf_token %}
+                      <button class="btn btn--small btn--ghost"
+                              type="submit">{% trans "Release" %}</button>
+                    </form>
+                  {% elif offer_id %}
+                    {% blocktrans with mine=my_slot.start|time:"H:i" theirs=slot.start|time:"H:i" asvar accept_msg %}Swap your {{ mine }} slot for {{ theirs }}?{% endblocktrans %}
+                    <form method="post"
+                          action="{% url 'offer_accept' offer_id %}"
+                          onsubmit="return confirm('{{ accept_msg|escapejs }}')">
+                      {% csrf_token %}
+                      <button class="btn btn--small btn--primary"
+                              type="submit">{% trans "Accept swap" %}</button>
+                    </form>
+                    <form method="post" action="{% url 'offer_decline' offer_id %}">
+                      {% csrf_token %}
+                      <button class="btn btn--small btn--ghost"
+                              type="submit">{% trans "Decline" %}</button>
+                    </form>
+                  {% elif slot.pk in offered_slot_ids %}
+                    <span class="slot__badge">{% trans "Offer sent" %}</span>
+                  {% elif my_slot and offers_left > 0 %}
+                    <form method="post"
+                          action="{% url 'offer_create' slot.pk %}"
+                          onsubmit="return confirm('{{ offer_msg|escapejs }}')">
+                      {% csrf_token %}
+                      <button class="btn btn--small btn--ghost"
+                              type="submit">{% trans "Swap" %}</button>
+                    </form>
+                  {% endif %}
+                </div>
+              {% endif %}
+              </li>
+            {% endwith %}
           {% endfor %}
         </ul>
       </section>

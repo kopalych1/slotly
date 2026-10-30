@@ -38,4 +38,14 @@ urlpatterns = [
         scheduling.views.create_offer_view,
         name='offer_create',
     ),
+    path(
+        'offers/<int:offer_id>/accept/',
+        scheduling.views.accept_offer_view,
+        name='offer_accept',
+    ),
+    path(
+        'offers/<int:offer_id>/decline/',
+        scheduling.views.decline_offer_view,
+        name='offer_decline',
+    ),
 ]
