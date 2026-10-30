@@ -3,6 +3,7 @@
 {% block title %}{{ exam.name }} · Slotly{% endblock %}
 {% block content %}
   {% trans "Move to this slot? Your offers for your current slot will be cancelled." as move_msg %}
+  {% trans "Send a swap offer for this slot? The student will see it on the site." as offer_msg %}
   <header class="exam-header">
     <h1>{{ exam.name }}</h1>
     <p class="muted">
@@ -27,6 +28,25 @@
                 {% elif slot.owner_id == user.pk %}
                   {% trans "You" %}
           {% else %}{{ slot.owner.get_full_name|default:slot.owner.username }}{% endif %}
+          {% if slot.pk in wanting_slot_ids %}
+            <svg class="slot__icon"
+                 width="16"
+                 height="16"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 role="img"
+                 aria-label="{% trans 'Wants to swap with you' %}">
+              <title>{% trans "Wants to swap with you" %}</title>
+              <path d="m17 2 4 4-4 4" />
+              <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+              <path d="m7 22-4-4 4-4" />
+              <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+            </svg>
+          {% endif %}
             </span>
             {% if not deadline_passed %}
               {% if not slot.owner_id %}
@@ -47,6 +67,16 @@
                   {% csrf_token %}
                   <button class="btn btn--small btn--ghost"
                           type="submit">{% trans "Release" %}</button>
+                </form>
+              {% elif slot.pk in offered_slot_ids %}
+                <span class="slot__badge">{% trans "Offer sent" %}</span>
+              {% elif my_slot and offers_left > 0 %}
+                <form method="post"
+                      action="{% url 'offer_create' slot.pk %}"
+                      onsubmit="return confirm('{{ offer_msg|escapejs }}')">
+                  {% csrf_token %}
+                  <button class="btn btn--small btn--ghost"
+                          type="submit">{% trans "Swap" %}</button>
                 </form>
               {% endif %}
             {% endif %}

@@ -33,4 +33,9 @@ urlpatterns = [
         scheduling.views.release_slot_view,
         name='slot_release',
     ),
+    path(
+        'slots/<int:slot_id>/offer/',
+        scheduling.views.create_offer_view,
+        name='offer_create',
+    ),
 ]

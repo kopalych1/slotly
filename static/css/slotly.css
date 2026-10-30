@@ -309,6 +309,16 @@ a {
   white-space: nowrap;
   flex: 1;
 }
+.slot__badge {
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.slot__icon {
+  vertical-align: -2px;
+  margin-left: 0.25rem;
+  color: var(--accent);
+}
 
 .slot--free {
   background: var(--slot-free-bg);
