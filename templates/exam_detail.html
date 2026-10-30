@@ -4,11 +4,15 @@
 {% block title %}{{ exam.name }} · Slotly{% endblock %}
 
 {% block content %}
+{% trans 'Move to this slot? Your offers for your current slot will be cancelled.' as move_msg %}
 <header class="exam-header">
   <h1>{{ exam.name }}</h1>
   <p class="muted">
     {% trans 'Changes allowed until' %} {{ exam.slots_change_deadline|date:"d M, H:i" }}
   </p>
+  {% if deadline_passed %}
+    <p class="message">{% trans 'Changes are closed for this exam.' %}</p>
+  {% endif %}
 </header>
 
 <div class="board">
@@ -24,6 +28,22 @@
               {% elif slot.owner_id == user.pk %}{% trans 'You' %}
               {% else %}{{ slot.owner.get_full_name|default:slot.owner.username }}{% endif %}
             </span>
+            {% if not deadline_passed %}
+            {% if not slot.owner_id %}
+                <form method="post" action="{% url 'slot_take' slot.pk %}"
+                    {% if my_slot %}onsubmit="return confirm('{{ move_msg|escapejs }}')"{% endif %}>
+                {% csrf_token %}
+                <button class="btn btn--small btn--primary" type="submit">
+                    {% if my_slot %}{% trans 'Move here' %}{% else %}{% trans 'Take' %}{% endif %}
+                </button>
+                </form>
+            {% elif slot.owner_id == user.pk %}
+                <form method="post" action="{% url 'slot_release' slot.pk %}">
+                {% csrf_token %}
+                <button class="btn btn--small btn--ghost" type="submit">{% trans 'Release' %}</button>
+                </form>
+            {% endif %}
+            {% endif %}
           </li>
         {% endfor %}
       </ul>

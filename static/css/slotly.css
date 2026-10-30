@@ -111,6 +111,7 @@ a { color: var(--accent); }
 }
 
 .btn--primary { background: var(--accent); color: var(--accent-contrast); }
+.btn--small { min-height: 2.5rem; padding: 0 0.75rem; font-size: 0.9rem; }
 .btn--primary:hover { filter: brightness(1.08); }
 .btn--ghost { background: transparent; color: var(--text); border-color: var(--border); }
 .btn--ghost:hover { border-color: var(--accent); color: var(--accent); }
@@ -206,7 +207,7 @@ a { color: var(--accent); }
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  min-height: 2.75rem;
+  min-height: 3.5rem;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -214,12 +215,14 @@ a { color: var(--accent); }
 }
 
 .slot__time { font-variant-numeric: tabular-nums; font-weight: 600; }
-.slot__who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot__who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 
 .slot--free { background: var(--slot-free-bg); border-color: var(--slot-free-border); }
 .slot--free .slot__who { color: var(--success); font-weight: 500; }
 .slot--mine { background: var(--slot-mine-bg); border-color: var(--slot-mine-border); }
 .slot--mine .slot__who { font-weight: 700; }
+
+.slot form { margin: 0; }
 
 /* Phones: one day at a time, swipe sideways */
 @media (max-width: 40rem) {
