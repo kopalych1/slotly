@@ -10,5 +10,17 @@
   "ruff.lint.enable": true,
   "ruff.organizeImports": true,
   "python.analysis.typeCheckingMode": "standard",
-  "files.eol": "\n"
+  "files.eol": "\n",
+  "files.associations": {
+    "**/templates/**/*.html": "django-html"
+  },
+  "[django-html]": {
+    "editor.defaultFormatter": "monosans.djlint",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+  },
 }

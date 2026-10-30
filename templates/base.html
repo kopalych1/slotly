@@ -1,54 +1,60 @@
 {% load static i18n %}
-<!doctype html>
+<!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE|default:'en' }}">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
-  <title>{% block title %}Slotly{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'css/slotly.css' %}">
-</head>
-<body>
-  <header class="site-header">
-    <div class="container site-header__inner">
-      <a class="brand" href="{% url 'home' %}">Slotly</a>
-
-      {% if user.is_authenticated %}
-        <nav class="site-nav" aria-label="{% trans 'Main' %}">
-          <a href="{% url 'home' %}">{% trans 'Exams' %}</a>
-          {% if user.is_teacher %}
-            <a href="#">{% trans 'Add exam' %}</a>
-          {% endif %}
-        </nav>
-
-        <div class="site-header__user">
-          <button class="icon-btn" type="button" aria-label="{% trans 'Notifications' %}" disabled>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-            </svg>
-          </button>
-          <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
-          <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button class="btn btn--ghost" type="submit">{% trans 'Log out' %}</button>
-          </form>
-        </div>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>{% block title %}Slotly{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/slotly.css' %}">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a class="brand" href="{% url 'home' %}">Slotly</a>
+        {% if user.is_authenticated %}
+          <nav class="site-nav" aria-label="{% trans 'Main' %}">
+            <a href="{% url 'home' %}">{% trans "Exams" %}</a>
+            {% if user.is_teacher %}
+              <a href="#">{% trans "Add exam" %}</a>
+            {% endif %}
+          </nav>
+          <div class="site-header__user">
+            <button class="icon-btn"
+                    type="button"
+                    aria-label="{% trans 'Notifications' %}"
+                    disabled>
+              <svg width="20"
+                   height="20"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   aria-hidden="true">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+              </svg>
+            </button>
+            <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
+            <form method="post" action="{% url 'logout' %}">
+              {% csrf_token %}
+              <button class="btn btn--ghost" type="submit">{% trans "Log out" %}</button>
+            </form>
+          </div>
+        {% endif %}
+      </div>
+    </header>
+    <main class="container">
+      {% if messages %}
+        <ul class="messages" role="status">
+          {% for message in messages %}
+            <li class="message message--{{ message.tags }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
       {% endif %}
-    </div>
-  </header>
-
-  <main class="container">
-    {% if messages %}
-      <ul class="messages" role="status">
-        {% for message in messages %}
-          <li class="message message--{{ message.tags }}">{{ message }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-
-    {% block content %}{% endblock %}
-  </main>
-</body>
+      {% block content %}{% endblock %}
+    </main>
+  </body>
 </html>

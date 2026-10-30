@@ -1,33 +1,33 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load i18n %}
-
-{% block title %}{% trans 'Log in' %} · Slotly{% endblock %}
-
+{% block title %}{% trans "Log in" %} · Slotly{% endblock %}
 {% block content %}
-<section class="auth-card">
-  <h1>{% trans 'Log in' %}</h1>
-
-  <form method="post">
-    {% csrf_token %}
-    <input type="hidden" name="next" value="{{ next }}">
-
-    {% if form.non_field_errors %}
-      <p class="form-error">{{ form.non_field_errors.0 }}</p>
-    {% endif %}
-
-    <div class="field">
-      <label for="{{ form.username.id_for_label }}">{% trans 'Username' %}</label>
-      <input type="text" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}"
-             autocomplete="username" autofocus required>
-    </div>
-
-    <div class="field">
-      <label for="{{ form.password.id_for_label }}">{% trans 'Password' %}</label>
-      <input type="password" name="{{ form.password.html_name }}" id="{{ form.password.id_for_label }}"
-             autocomplete="current-password" required>
-    </div>
-
-    <button class="btn btn--primary btn--block" type="submit">{% trans 'Log in' %}</button>
-  </form>
-</section>
+  <section class="auth-card">
+    <h1>{% trans "Log in" %}</h1>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {% if form.non_field_errors %}
+        <p class="form-error">{{ form.non_field_errors.0 }}</p>
+      {% endif %}
+      <div class="field">
+        <label for="{{ form.username.id_for_label }}">{% trans "Username" %}</label>
+        <input type="text"
+               name="{{ form.username.html_name }}"
+               id="{{ form.username.id_for_label }}"
+               autocomplete="username"
+               autofocus
+               required>
+      </div>
+      <div class="field">
+        <label for="{{ form.password.id_for_label }}">{% trans "Password" %}</label>
+        <input type="password"
+               name="{{ form.password.html_name }}"
+               id="{{ form.password.id_for_label }}"
+               autocomplete="current-password"
+               required>
+      </div>
+      <button class="btn btn--primary btn--block" type="submit">{% trans "Log in" %}</button>
+    </form>
+  </section>
 {% endblock %}
