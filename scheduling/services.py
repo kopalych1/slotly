@@ -11,6 +11,7 @@ from scheduling.exceptions import (
     DifferentExamError,
     DuplicateOfferError,
     InvalidDayRangeError,
+    InviteError,
     InviteExpiredError,
     InviteLimitReachedError,
     InviteNotFoundError,
@@ -252,6 +253,17 @@ def decline_offer(offer_id: int, user: User):
         offer.save(update_fields=['status'])
 
 
+def get_invite_problem(invite: Invite) -> InviteError | None:
+
+    if invite.is_revoked:
+        return InviteRevokedError()
+    if invite.expires_at is not None and invite.expires_at <= now():
+        return InviteExpiredError()
+    if invite.usage_limit is not None and invite.usage_counter >= invite.usage_limit:
+        return InviteLimitReachedError()
+    return None
+
+
 def accept_invite(token: str, user: User) -> Enrollment:
     with transaction.atomic():
         try:
@@ -270,15 +282,9 @@ def accept_invite(token: str, user: User) -> Enrollment:
         if existing is not None:
             return existing
 
-        if invite.is_revoked:
-            raise InviteRevokedError()
-        if invite.expires_at is not None and invite.expires_at <= now():
-            raise InviteExpiredError()
-        if (
-            invite.usage_limit is not None
-            and invite.usage_counter >= invite.usage_limit
-        ):
-            raise InviteLimitReachedError()
+        problem = get_invite_problem(invite)
+        if problem is not None:
+            raise problem
 
         enrollment = Enrollment.objects.create(exam=invite.exam, user=user)
         invite.usage_counter += 1
