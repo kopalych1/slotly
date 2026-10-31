@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import redirect_to_login
 from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -7,13 +8,19 @@ from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
 
-from scheduling.exceptions import SchedulingError
-from scheduling.models import Exam, ExamDay, Offer, Slot
+from scheduling.exceptions import (
+    InviteError,
+    SchedulingError,
+    TeacherCannotEnrollError,
+)
+from scheduling.models import Enrollment, Exam, ExamDay, Invite, Offer, Slot
 from scheduling.services import (
     MAX_ACTIVE_OFFERS,
+    accept_invite,
     accept_offer,
     create_offer,
     decline_offer,
+    get_invite_problem,
     release_slot,
     take_slot,
 )
@@ -162,3 +169,56 @@ def decline_offer_view(request, offer_id: int):
         messages.success(request, _('Offer declined'))
 
     return redirect('exam_detail', pk=offer.wanted_slot.exam_id)
+
+
+def join_invite(request, token: str):
+
+    invite = get_object_or_404(Invite.objects.select_related('exam'), token=token)
+
+    if request.user.is_authenticated:
+        is_enrolled = Enrollment.objects.filter(
+            user_id=request.user.pk,
+            exam_id=invite.exam_id,  # pyright: ignore[reportAttributeAccessIssue]
+        ).exists()
+        if is_enrolled:
+            return redirect('exam_detail', pk=invite.exam_id)  # pyright: ignore[reportAttributeAccessIssue]
+        if request.user.is_teacher:
+            return render(
+                request,
+                'join.html',
+                {
+                    'invite': invite,
+                    'exam': invite.exam,
+                    'problem': str(TeacherCannotEnrollError()),
+                },
+            )
+
+    problem = get_invite_problem(invite)
+    if problem is not None:
+        return render(
+            request,
+            'join.html',
+            {'invite': invite, 'exam': invite.exam, 'problem': str(problem)},
+        )
+
+    if request.method == 'POST':
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+
+        try:
+            accept_invite(token, request.user)
+        except InviteError as e:
+            messages.error(request, str(e))
+            return redirect('join_invite', token=token)
+        else:
+            messages.success(request, _('Invite accepted'))
+            return redirect('exam_detail', pk=invite.exam_id)  # pyright: ignore[reportAttributeAccessIssue]
+    return render(
+        request,
+        'join.html',
+        {
+            'invite': invite,
+            'exam': invite.exam,
+            'problem': problem,
+        },
+    )

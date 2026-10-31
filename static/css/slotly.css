@@ -374,6 +374,19 @@ a {
   margin: 0;
 }
 
+/* Join */
+
+a.btn {
+  text-decoration: none;
+}
+.auth-card .btn + .btn {
+  margin-top: 0.5rem;
+}
+.invite-exam {
+  font-size: 1.05rem;
+  margin: 0 0 1rem;
+}
+
 /* Phones: one day at a time, swipe sideways */
 @media (max-width: 40rem) {
   .board {

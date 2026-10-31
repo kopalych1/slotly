@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.test import TestCase
+from django.urls import reverse
 from django.utils.timezone import now
 
 from accounts.models import User
@@ -719,3 +720,87 @@ class AcceptInviteTests(SchedulingTestCase):
         self.assertEqual(Enrollment.objects.filter(user=self.teacher).count(), 0)
         invite.refresh_from_db()
         self.assertEqual(invite.usage_counter, 0)
+
+
+class JoinInviteViewTests(SchedulingTestCase):
+    def setUp(self):
+        self.invite = Invite.objects.create(exam=self.exam, usage_limit=5)
+        self.url = reverse('join_invite', kwargs={'token': self.invite.token})
+        self.exam_url = reverse('exam_detail', kwargs={'pk': self.exam.pk})
+        self.newbie = User.objects.create_user(
+            username='newbie', password='pass', role=User.Role.STUDENT
+        )
+
+    def test_unknown_token_returns_404(self):
+        response = self.client.get(reverse('join_invite', kwargs={'token': 'nope'}))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_get_does_not_use_invite(self):
+        self.client.force_login(self.newbie)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.invite.refresh_from_db()
+        self.assertEqual(self.invite.usage_counter, 0)
+        self.assertFalse(Enrollment.objects.filter(user=self.newbie).exists())
+
+    def test_post_enrolls_and_redirects_to_exam(self):
+        self.client.force_login(self.newbie)
+
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, self.exam_url, fetch_redirect_response=False)
+        self.assertTrue(
+            Enrollment.objects.filter(user=self.newbie, exam=self.exam).exists()
+        )
+        self.invite.refresh_from_db()
+        self.assertEqual(self.invite.usage_counter, 1)
+
+    def test_already_enrolled_user_is_sent_to_exam(self):
+        self.client.force_login(self.students[0])
+
+        response = self.client.get(self.url)
+
+        self.assertRedirects(response, self.exam_url, fetch_redirect_response=False)
+
+    def test_enrolled_user_can_use_dead_link(self):
+        Invite.objects.filter(pk=self.invite.pk).update(is_revoked=True)
+        self.client.force_login(self.students[0])
+
+        response = self.client.get(self.url)
+
+        self.assertRedirects(response, self.exam_url, fetch_redirect_response=False)
+
+    def test_anonymous_post_redirects_to_login(self):
+        response = self.client.post(self.url)
+
+        self.assertRedirects(
+            response,
+            f'{reverse("login")}?next={self.url}',
+            fetch_redirect_response=False,
+        )
+        self.invite.refresh_from_db()
+        self.assertEqual(self.invite.usage_counter, 0)
+
+    def test_dead_link_shows_problem_and_does_not_enroll(self):
+        Invite.objects.filter(pk=self.invite.pk).update(is_revoked=True)
+        self.client.force_login(self.newbie)
+
+        get_response = self.client.get(self.url)
+        post_response = self.client.post(self.url)
+
+        for response in (get_response, post_response):
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.context['problem'], str(InviteRevokedError()))
+        self.assertFalse(Enrollment.objects.filter(user=self.newbie).exists())
+
+    def test_teacher_sees_problem_and_does_not_enroll(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['problem'], str(TeacherCannotEnrollError()))
+        self.assertFalse(Enrollment.objects.filter(user=self.teacher).exists())

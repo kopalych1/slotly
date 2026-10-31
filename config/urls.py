@@ -48,4 +48,5 @@ urlpatterns = [
         scheduling.views.decline_offer_view,
         name='offer_decline',
     ),
+    path('join/<str:token>/', scheduling.views.join_invite, name='join_invite'),
 ]
