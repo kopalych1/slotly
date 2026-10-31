@@ -13,6 +13,15 @@
     {% if deadline_passed %}
       <p class="message">{% trans "Changes are closed for this exam." %}</p>
     {% endif %}
+    {% if my_slot and not deadline_passed %}
+      <p class="muted">
+        {% if offers_left > 0 %}
+          {% blocktrans count counter=offers_left %}You can send {{ counter }} more offer.{% plural %}You can send {{ counter }} more offers.{% endblocktrans %}
+        {% else %}
+          {% trans "You have reached the limit of active offers. Wait for answers or for them to expire." %}
+        {% endif %}
+      </p>
+    {% endif %}
   </header>
   <div class="board">
     {% for examday in examdays %}
