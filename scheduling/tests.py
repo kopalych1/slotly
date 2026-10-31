@@ -10,6 +10,10 @@ from scheduling.exceptions import (
     DifferentExamError,
     DuplicateOfferError,
     InvalidDayRangeError,
+    InviteExpiredError,
+    InviteLimitReachedError,
+    InviteNotFoundError,
+    InviteRevokedError,
     NotEnrolledError,
     NotSlotOwnerError,
     NotWantedSlotOwnerError,
@@ -21,10 +25,12 @@ from scheduling.exceptions import (
     SlotAlreadyOwnedError,
     SlotNotFreeError,
     SlotsAlreadyExistError,
+    TeacherCannotEnrollError,
     WantedSlotFreeError,
 )
-from scheduling.models import Enrollment, Exam, ExamDay, Offer, Slot, SwapLog
+from scheduling.models import Enrollment, Exam, ExamDay, Invite, Offer, Slot, SwapLog
 from scheduling.services import (
+    accept_invite,
     accept_offer,
     bulk_fill_slots,
     create_offer,
@@ -625,3 +631,91 @@ class EnrollmentCheckTests(SchedulingTestCase):
 
         with self.assertRaises(NotEnrolledError):
             release_slot(self.slots[0].pk, self.students[0])
+
+
+class AcceptInviteTests(SchedulingTestCase):
+    def make_student(self, name):
+        return User.objects.create_user(
+            username=name, password='pass', role=User.Role.STUDENT
+        )
+
+    def make_invite(self, **kwargs):
+        return Invite.objects.create(exam=self.exam, **kwargs)
+
+    def test_enrolls_user_and_counts_use(self):
+        invite = self.make_invite(usage_limit=5)
+        user = self.make_student('newbie')
+
+        enrollment = accept_invite(invite.token, user)
+
+        self.assertEqual(enrollment.exam, self.exam)
+        self.assertEqual(enrollment.user, user)
+        invite.refresh_from_db()
+        self.assertEqual(invite.usage_counter, 1)
+
+    def test_repeated_use_does_not_burn_limit(self):
+        invite = self.make_invite(usage_limit=1)
+        user = self.make_student('newbie')
+        first = accept_invite(invite.token, user)
+
+        second = accept_invite(invite.token, user)
+
+        self.assertEqual(first.pk, second.pk)
+        invite.refresh_from_db()
+        self.assertEqual(invite.usage_counter, 1)
+        self.assertEqual(Enrollment.objects.filter(user=user).count(), 1)
+
+    def test_enrolled_user_can_use_exhausted_revoked_link(self):
+        invite = self.make_invite(usage_limit=1)
+        user = self.make_student('newbie')
+        accept_invite(invite.token, user)
+        Invite.objects.filter(pk=invite.pk).update(is_revoked=True)
+
+        enrollment = accept_invite(invite.token, user)
+
+        self.assertEqual(enrollment.user, user)
+
+    def test_unlimited_invite_works_for_many_users(self):
+        invite = self.make_invite()
+
+        for i in range(3):
+            accept_invite(invite.token, self.make_student(f'user{i}'))
+
+        invite.refresh_from_db()
+        self.assertEqual(invite.usage_counter, 3)
+
+    def test_raises_when_limit_reached(self):
+        invite = self.make_invite(usage_limit=1)
+        accept_invite(invite.token, self.make_student('first'))
+        late = self.make_student('late')
+
+        with self.assertRaises(InviteLimitReachedError):
+            accept_invite(invite.token, late)
+
+        self.assertFalse(Enrollment.objects.filter(user=late).exists())
+
+    def test_raises_if_revoked(self):
+        invite = self.make_invite(is_revoked=True)
+
+        with self.assertRaises(InviteRevokedError):
+            accept_invite(invite.token, self.make_student('newbie'))
+
+    def test_raises_if_expired(self):
+        invite = self.make_invite(expires_at=now() - timedelta(minutes=1))
+
+        with self.assertRaises(InviteExpiredError):
+            accept_invite(invite.token, self.make_student('newbie'))
+
+    def test_raises_for_unknown_token(self):
+        with self.assertRaises(InviteNotFoundError):
+            accept_invite('no-such-token', self.make_student('newbie'))
+
+    def test_teacher_cannot_enroll(self):
+        invite = self.make_invite()
+
+        with self.assertRaises(TeacherCannotEnrollError):
+            accept_invite(invite.token, self.teacher)
+
+        self.assertEqual(Enrollment.objects.filter(user=self.teacher).count(), 0)
+        invite.refresh_from_db()
+        self.assertEqual(invite.usage_counter, 0)

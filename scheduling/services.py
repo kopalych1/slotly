@@ -11,6 +11,10 @@ from scheduling.exceptions import (
     DifferentExamError,
     DuplicateOfferError,
     InvalidDayRangeError,
+    InviteExpiredError,
+    InviteLimitReachedError,
+    InviteNotFoundError,
+    InviteRevokedError,
     NotEnrolledError,
     NotSlotOwnerError,
     NotWantedSlotOwnerError,
@@ -23,9 +27,10 @@ from scheduling.exceptions import (
     SlotChangedError,
     SlotNotFreeError,
     SlotsAlreadyExistError,
+    TeacherCannotEnrollError,
     WantedSlotFreeError,
 )
-from scheduling.models import Enrollment, ExamDay, Offer, Slot, SwapLog
+from scheduling.models import Enrollment, ExamDay, Invite, Offer, Slot, SwapLog
 
 
 def ensure_enrolled(user: User, exam_id: int) -> None:
@@ -245,3 +250,38 @@ def decline_offer(offer_id: int, user: User):
 
         offer.status = Offer.Status.CANCELED
         offer.save(update_fields=['status'])
+
+
+def accept_invite(token: str, user: User) -> Enrollment:
+    with transaction.atomic():
+        try:
+            invite = (
+                Invite.objects.select_for_update(of=('self',))
+                .select_related('exam')
+                .get(token=token)
+            )
+        except Invite.DoesNotExist:
+            raise InviteNotFoundError()
+
+        if user.is_teacher:
+            raise TeacherCannotEnrollError()
+
+        existing = Enrollment.objects.filter(exam=invite.exam, user=user).first()
+        if existing is not None:
+            return existing
+
+        if invite.is_revoked:
+            raise InviteRevokedError()
+        if invite.expires_at is not None and invite.expires_at <= now():
+            raise InviteExpiredError()
+        if (
+            invite.usage_limit is not None
+            and invite.usage_counter >= invite.usage_limit
+        ):
+            raise InviteLimitReachedError()
+
+        enrollment = Enrollment.objects.create(exam=invite.exam, user=user)
+        invite.usage_counter += 1
+        invite.save(update_fields=['usage_counter'])
+
+        return enrollment

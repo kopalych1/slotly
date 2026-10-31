@@ -96,3 +96,27 @@ class SlotAlreadyOwnedError(SlotActionError):
 
 class SlotChangedError(SlotActionError):
     message = _('Your slot has changed, please refresh the page and try again')
+
+
+class InviteError(SchedulingError):
+    message = _('This invitation cannot be used')
+
+
+class InviteNotFoundError(InviteError):
+    message = _('This invitation link is not valid')
+
+
+class InviteRevokedError(InviteError):
+    message = _('This invitation has been revoked')
+
+
+class InviteExpiredError(InviteError):
+    message = _('This invitation has expired')
+
+
+class InviteLimitReachedError(InviteError):
+    message = _('This invitation has no uses left')
+
+
+class TeacherCannotEnrollError(InviteError):
+    message = _('Teachers cannot join an exam as students')
