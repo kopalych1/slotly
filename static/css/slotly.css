@@ -387,6 +387,27 @@ a.btn {
   margin: 0 0 1rem;
 }
 
+/* Register */
+
+.field__error {
+  margin: 0.25rem 0 0;
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+.field__help {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.field__help ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.auth-card__alt {
+  margin: 1rem 0 0;
+  text-align: center;
+}
+
 /* Phones: one day at a time, swipe sideways */
 @media (max-width: 40rem) {
   .board {

@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
 from django.db.models import Prefetch, Q
@@ -8,6 +9,7 @@ from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
 
+from accounts.forms import RegisterForm
 from scheduling.exceptions import (
     InviteError,
     SchedulingError,
@@ -221,4 +223,37 @@ def join_invite(request, token: str):
             'exam': invite.exam,
             'problem': problem,
         },
+    )
+
+
+def register(request, token: str):
+
+    invite = get_object_or_404(Invite.objects.select_related('exam'), token=token)
+
+    if request.user.is_authenticated:
+        return redirect('join_invite', token=token)
+
+    if get_invite_problem(invite) is not None:
+        return redirect('join_invite', token=token)
+
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+
+            try:
+                accept_invite(token, user)
+            except InviteError as e:
+                messages.error(request, str(e))
+                return redirect('join_invite', token=token)
+            else:
+                messages.success(request, _('Invite accepted'))
+                return redirect('exam_detail', pk=invite.exam_id)  # pyright: ignore[reportAttributeAccessIssue]
+    else:
+        form = RegisterForm(initial={'email': invite.email})
+
+    return render(
+        request, 'register.html', {'form': form, 'invite': invite, 'exam': invite.exam}
     )

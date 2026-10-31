@@ -28,7 +28,8 @@
       <p class="muted">{% trans "Log in or create an account to join." %}</p>
       <a class="btn btn--primary btn--block"
          href="{% url 'login' %}?next={{ request.path|urlencode }}">{% trans "Log in" %}</a>
-      <a class="btn btn--ghost btn--block" href="#">{% trans "Register" %}</a>
+      <a class="btn btn--ghost btn--block"
+         href="{% url 'register' token=invite.token %}">{% trans "Register" %}</a>
     {% endif %}
   </section>
 {% endblock %}

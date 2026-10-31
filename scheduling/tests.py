@@ -804,3 +804,75 @@ class JoinInviteViewTests(SchedulingTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['problem'], str(TeacherCannotEnrollError()))
         self.assertFalse(Enrollment.objects.filter(user=self.teacher).exists())
+
+
+class RegisterViewTests(SchedulingTestCase):
+    def setUp(self):
+        self.invite = Invite.objects.create(exam=self.exam, usage_limit=5)
+        self.url = reverse('register', kwargs={'token': self.invite.token})
+        self.join_url = reverse('join_invite', kwargs={'token': self.invite.token})
+        self.exam_url = reverse('exam_detail', kwargs={'pk': self.exam.pk})
+        self.data = {
+            'username': 'newbie',
+            'first_name': 'New',
+            'last_name': 'Bie',
+            'email': 'newbie@example.com',
+            'password1': 'S3cure-pass-xyz',
+            'password2': 'S3cure-pass-xyz',
+        }
+
+    def test_get_shows_form(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('form', response.context)
+
+    def test_join_page_for_anonymous_links_to_register(self):
+        response = self.client.get(self.join_url)
+
+        self.assertContains(response, self.url)
+
+    def test_post_creates_student_enrolls_and_logs_in(self):
+        response = self.client.post(self.url, self.data)
+
+        self.assertRedirects(response, self.exam_url, fetch_redirect_response=False)
+        user = User.objects.get(username='newbie')
+        self.assertEqual(user.role, User.Role.STUDENT)
+        self.assertTrue(Enrollment.objects.filter(user=user, exam=self.exam).exists())
+        self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
+        self.invite.refresh_from_db()
+        self.assertEqual(self.invite.usage_counter, 1)
+
+    def test_role_cannot_be_forged(self):
+        self.client.post(self.url, {**self.data, 'role': User.Role.TEACHER})
+
+        self.assertEqual(User.objects.get(username='newbie').role, User.Role.STUDENT)
+
+    def test_invalid_form_shows_errors_and_creates_nothing(self):
+        response = self.client.post(self.url, {**self.data, 'password2': 'different'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['form'].errors)
+        self.assertFalse(User.objects.filter(username='newbie').exists())
+
+    def test_dead_link_redirects_to_join_page(self):
+        Invite.objects.filter(pk=self.invite.pk).update(is_revoked=True)
+
+        response = self.client.post(self.url, self.data)
+
+        self.assertRedirects(response, self.join_url, fetch_redirect_response=False)
+        self.assertFalse(User.objects.filter(username='newbie').exists())
+
+    def test_logged_in_user_is_redirected(self):
+        self.client.force_login(self.students[0])
+
+        response = self.client.get(self.url)
+
+        self.assertRedirects(response, self.join_url, fetch_redirect_response=False)
+
+    def test_personal_invite_prefills_email(self):
+        Invite.objects.filter(pk=self.invite.pk).update(email='named@example.com')
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.context['form'].initial['email'], 'named@example.com')

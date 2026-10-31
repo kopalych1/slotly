@@ -49,4 +49,5 @@ urlpatterns = [
         name='offer_decline',
     ),
     path('join/<str:token>/', scheduling.views.join_invite, name='join_invite'),
+    path('join/<str:token>/register/', scheduling.views.register, name='register'),
 ]
