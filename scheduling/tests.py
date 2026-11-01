@@ -16,6 +16,7 @@ from scheduling.exceptions import (
     InviteNotFoundError,
     InviteRevokedError,
     NotEnrolledError,
+    NotOfferorError,
     NotSlotOwnerError,
     NotWantedSlotOwnerError,
     OfferExpiredError,
@@ -38,6 +39,7 @@ from scheduling.services import (
     decline_offer,
     release_slot,
     take_slot,
+    withdraw_offer,
 )
 
 
@@ -536,7 +538,7 @@ class DeclineOfferTests(SchedulingTestCase):
         decline_offer(offer.pk, s1)
 
         offer.refresh_from_db()
-        self.assertEqual(offer.status, Offer.Status.CANCELED)
+        self.assertEqual(offer.status, Offer.Status.DECLINED)
         self.assertEqual(self.owner_of(self.slots[0]), s0)
         self.assertEqual(self.owner_of(self.slots[1]), s1)
 
@@ -580,7 +582,7 @@ class DeclineOfferTests(SchedulingTestCase):
 
         decline_offer(second.pk, s0)
         second.refresh_from_db()
-        self.assertEqual(second.status, Offer.Status.CANCELED)
+        self.assertEqual(second.status, Offer.Status.DECLINED)
 
 
 class EnrollmentCheckTests(SchedulingTestCase):
@@ -876,3 +878,68 @@ class RegisterViewTests(SchedulingTestCase):
         response = self.client.get(self.url)
 
         self.assertEqual(response.context['form'].initial['email'], 'named@example.com')
+
+
+class WithdrawOfferTests(SchedulingTestCase):
+    def test_offeror_withdraws_offer(self):
+        s0, s1, _ = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+
+        withdraw_offer(offer.pk, s0)
+
+        offer.refresh_from_db()
+        self.assertEqual(offer.status, Offer.Status.WITHDRAWN)
+        self.assertEqual(self.owner_of(self.slots[0]), s0)
+        self.assertEqual(self.owner_of(self.slots[1]), s1)
+
+    def test_raises_if_not_offeror(self):
+        s0, s1, _ = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+
+        with self.assertRaises(NotOfferorError):
+            withdraw_offer(offer.pk, s1)
+
+        offer.refresh_from_db()
+        self.assertEqual(offer.status, Offer.Status.AWAITING)
+
+    def test_raises_if_offer_already_accepted(self):
+        s0, s1, _ = self.students
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+        accept_offer(offer.pk, s1)
+
+        with self.assertRaises(OfferNotAwaitingError):
+            withdraw_offer(offer.pk, s0)
+
+        offer.refresh_from_db()
+        self.assertEqual(offer.status, Offer.Status.ACCEPTED)
+
+    def test_can_withdraw_after_deadline(self):
+        s0 = self.students[0]
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+        Exam.objects.filter(pk=self.exam.pk).update(
+            slots_change_deadline=now() - timedelta(minutes=1)
+        )
+
+        withdraw_offer(offer.pk, s0)
+
+        offer.refresh_from_db()
+        self.assertEqual(offer.status, Offer.Status.WITHDRAWN)
+
+    def test_same_offer_can_be_sent_again_after_withdrawal(self):
+        s0 = self.students[0]
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+        withdraw_offer(offer.pk, s0)
+
+        again = create_offer(s0, self.slots[0], self.slots[1])
+
+        self.assertEqual(again.status, Offer.Status.AWAITING)
+
+    def test_requires_enrollment(self):
+        s0 = self.students[0]
+        offer = create_offer(s0, self.slots[0], self.slots[1])
+        outsider = User.objects.create_user(
+            username='outsider', password='pass', role=User.Role.STUDENT
+        )
+
+        with self.assertRaises(NotEnrolledError):
+            withdraw_offer(offer.pk, outsider)

@@ -119,6 +119,8 @@ class Offer(models.Model):
         ACCEPTED = 'A', _('Accepted')
         CANCELED = 'C', _('Canceled')
         EXPIRED = 'E', _('Expired')
+        DECLINED = 'D', _('Declined')
+        WITHDRAWN = 'R', _('Withdrawn')
 
     offeror = models.ForeignKey(
         'accounts.User', verbose_name=_('Offeror'), on_delete=models.CASCADE

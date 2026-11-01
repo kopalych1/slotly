@@ -17,6 +17,7 @@ from scheduling.exceptions import (
     InviteNotFoundError,
     InviteRevokedError,
     NotEnrolledError,
+    NotOfferorError,
     NotSlotOwnerError,
     NotWantedSlotOwnerError,
     OfferExpiredError,
@@ -249,7 +250,7 @@ def decline_offer(offer_id: int, user: User):
         if offer.wanted_slot.owner_id != user.pk:
             raise NotWantedSlotOwnerError()
 
-        offer.status = Offer.Status.CANCELED
+        offer.status = Offer.Status.DECLINED
         offer.save(update_fields=['status'])
 
 
@@ -291,3 +292,22 @@ def accept_invite(token: str, user: User) -> Enrollment:
         invite.save(update_fields=['usage_counter'])
 
         return enrollment
+
+
+def withdraw_offer(offer_id: int, user: User):
+    with transaction.atomic():
+        offer = (
+            Offer.objects.select_related('wanted_slot')
+            .select_for_update(of=('self',))
+            .get(pk=offer_id)
+        )
+
+        ensure_enrolled(user, exam_id=offer.wanted_slot.exam_id)
+
+        if offer.status != Offer.Status.AWAITING:
+            raise OfferNotAwaitingError()
+        if offer.offeror_id != user.pk:  # pyright: ignore[reportAttributeAccessIssue]
+            raise NotOfferorError()
+
+        offer.status = Offer.Status.WITHDRAWN
+        offer.save(update_fields=['status'])

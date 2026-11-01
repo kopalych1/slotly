@@ -82,6 +82,10 @@ class NotWantedSlotOwnerError(AcceptOfferError):
     message = _('You do not hold the slot this offer is for')
 
 
+class NotOfferorError(SchedulingError):
+    message = _('You are not the author of this offer')
+
+
 class SlotActionError(SchedulingError):
     message = _('This action cannot be performed on the slot')
 
