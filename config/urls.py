@@ -44,6 +44,11 @@ urlpatterns = [
         name='offer_accept',
     ),
     path(
+        'offers/<int:offer_id>/withdraw/',
+        scheduling.views.offer_withdraw_view,
+        name='offer_withdraw',
+    ),
+    path(
         'offers/<int:offer_id>/decline/',
         scheduling.views.decline_offer_view,
         name='offer_decline',

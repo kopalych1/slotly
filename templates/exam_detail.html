@@ -1,6 +1,5 @@
 {% extends "base.html" %}
-{% load scheduling_extras %}
-{% load i18n %}
+{% load i18n scheduling_extras %}
 {% block title %}{{ exam.name }} · Slotly{% endblock %}
 {% block content %}
   {% trans "Move to this slot? Your offers for your current slot will be cancelled." as move_msg %}
@@ -13,24 +12,25 @@
     {% if deadline_passed %}
       <p class="message">{% trans "Changes are closed for this exam." %}</p>
     {% endif %}
-    {% if my_slot and not deadline_passed %}
-      <p class="muted">
-        {% if offers_left > 0 %}
-          {% blocktrans count counter=offers_left %}You can send {{ counter }} more offer.{% plural %}You can send {{ counter }} more offers.{% endblocktrans %}
-        {% else %}
-          {% trans "You have reached the limit of active offers. Wait for answers or for them to expire." %}
-        {% endif %}
-      </p>
-    {% endif %}
   </header>
+  {% if my_slot and not deadline_passed %}
+    <p class="muted">
+      {% if offers_left > 0 %}
+        {% blocktrans count counter=offers_left %}You can send {{ counter }} more offer.{% plural %}You can send {{ counter }} more offers.{% endblocktrans %}
+      {% else %}
+        {% trans "You have reached the limit of active offers. Wait for answers or withdraw any offer" %}
+      {% endif %}
+    </p>
+  {% endif %}
   <div class="board">
     {% for examday in examdays %}
       <section class="day" aria-labelledby="day-{{ examday.pk }}">
         <h2 class="day__title" id="day-{{ examday.pk }}">{{ examday.start|date:"l, d M" }}</h2>
         <ul class="slots">
           {% for slot in examday.slot_set.all %}
-            {% with offer_id=incoming_offers|get_item:slot.pk %}
-              <li class="slot {% if not slot.owner_id %}slot--free{% elif slot.owner_id == user.pk %}slot--mine{% else %}slot--taken{% endif %}{% if offer_id %} slot--wants-me{% endif %}">
+            {% with offer_id=incoming_offers|get_item:slot.pk sent=sent_offers|get_item:slot.pk %}
+              <li id="slot-{{ slot.pk }}"
+                  class="slot {% if not slot.owner_id %}slot--free{% elif slot.owner_id == user.pk %}slot--mine{% else %}slot--taken{% endif %}{% if offer_id %} slot--wants-me{% endif %}">
                 <div class="slot__main">
                   <time class="slot__time"
                         datetime="{{ slot.start|date:'c' }}">{{ slot.start|time:"H:i" }}</time>
@@ -80,8 +80,12 @@
                       <button class="btn btn--small btn--ghost"
                               type="submit">{% trans "Decline" %}</button>
                     </form>
-                  {% elif slot.pk in offered_slot_ids %}
-                    <span class="slot__badge">{% trans "Offer sent" %}</span>
+                  {% elif sent %}
+                    <form method="post" action="{% url 'offer_withdraw' sent.pk %}">
+                      {% csrf_token %}
+                      <button class="btn btn--small btn--danger-outline"
+                              type="submit">{% trans "Withdraw offer" %}</button>
+                    </form>
                   {% elif my_slot and offers_left > 0 %}
                     <form method="post"
                           action="{% url 'offer_create' slot.pk %}"
@@ -102,4 +106,17 @@
       <p class="muted">{% trans "No exam days yet." %}</p>
     {% endfor %}
   </div>
+  {% if history_list %}
+    <details class="activity">
+      <summary>{% trans "Your offer history" %}</summary>
+      {% for offer in history_list %}
+        <p class="history-row">
+          <span>{% blocktrans with t=offer.wanted_slot.start|date:"d M, H:i" %}For the {{ t }} slot{% endblocktrans %}</span>
+          <span class="status{% if offer.status == 'A' %} status--ok{% endif %}">
+            {% if offer.status == "W" %}{% trans "Expired" %}{% else %}{{ offer.get_status_display }}{% endif %}
+          </span>
+        </p>
+      {% endfor %}
+    </details>
+  {% endif %}
 {% endblock %}

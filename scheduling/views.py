@@ -25,6 +25,7 @@ from scheduling.services import (
     get_invite_problem,
     release_slot,
     take_slot,
+    withdraw_offer,
 )
 
 
@@ -48,27 +49,33 @@ def exam_detail(request, pk: int):
     )
 
     my_slot = Slot.objects.filter(exam=exam, owner=request.user).first()
+    current_time = now()
 
-    rows = list(
+    active_offers = list(
         Offer.objects.filter(
             offered_slot__exam=exam,
             status=Offer.Status.AWAITING,
-            expires_at__gt=now(),
-        ).values_list('pk', 'offeror_id', 'offered_slot_id', 'wanted_slot_id')
+            expires_at__gt=current_time,
+        ).order_by('created_at')
     )
 
-    offered_slot_ids = set()  # Slots who I want to change with
-    incoming = {}  # Slots who wants to change with me
-    my_offers_count = 0
+    sent = {}
+    incoming = {}
+    sent_count = 0
 
-    for offer_pk, offeror_id, offered_id, wanted_id in rows:
-        if offeror_id == request.user.pk:
-            offered_slot_ids.add(wanted_id)
-            my_offers_count += 1
-        if my_slot is not None and wanted_id == my_slot.pk:
-            incoming[offered_id] = offer_pk
+    for offer in active_offers:
+        if offer.offeror_id == request.user.pk:  # pyright: ignore[reportAttributeAccessIssue]
+            sent[offer.wanted_slot_id] = offer  # pyright: ignore[reportAttributeAccessIssue]
+            sent_count += 1
+        if my_slot is not None and offer.wanted_slot_id == my_slot.pk:  # pyright: ignore[reportAttributeAccessIssue]
+            incoming[offer.offered_slot_id] = offer.pk  # pyright: ignore[reportAttributeAccessIssue]
 
-    offers_left = max(0, MAX_ACTIVE_OFFERS - my_offers_count)
+    history_list = list(
+        Offer.objects.filter(offeror=request.user, offered_slot__exam=exam)
+        .filter(~Q(status=Offer.Status.AWAITING) | Q(expires_at__lte=current_time))
+        .select_related('wanted_slot')
+        .order_by('-created_at')[:10]
+    )
 
     return render(
         request,
@@ -76,11 +83,12 @@ def exam_detail(request, pk: int):
         {
             'exam': exam,
             'examdays': examdays,
-            'deadline_passed': now() >= exam.slots_change_deadline,
+            'deadline_passed': current_time >= exam.slots_change_deadline,
             'my_slot': my_slot,
-            'offered_slot_ids': offered_slot_ids,
+            'sent_offers': sent,
             'incoming_offers': incoming,
-            'offers_left': offers_left,
+            'offers_left': max(0, MAX_ACTIVE_OFFERS - sent_count),
+            'history_list': history_list,
         },
     )
 
@@ -169,6 +177,21 @@ def decline_offer_view(request, offer_id: int):
         messages.error(request, str(e))
     else:
         messages.success(request, _('Offer declined'))
+
+    return redirect('exam_detail', pk=offer.wanted_slot.exam_id)
+
+
+@login_required
+@require_POST
+def offer_withdraw_view(request, offer_id: int):
+    offer = get_object_or_404(Offer.objects.select_related('wanted_slot'), pk=offer_id)
+
+    try:
+        withdraw_offer(offer_id, request.user)
+    except SchedulingError as e:
+        messages.error(request, str(e))
+    else:
+        messages.success(request, _('Offer withdrawn'))
 
     return redirect('exam_detail', pk=offer.wanted_slot.exam_id)
 
