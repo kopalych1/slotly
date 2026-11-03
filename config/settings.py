@@ -18,6 +18,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def split_config_string(s: str) -> list[str]:
+    return [h.strip() for h in s.split(',') if h.strip()]
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -32,9 +36,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 
-ALLOWED_HOSTS = [
-    h.strip() for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h.strip()
-]
+ALLOWED_HOSTS = split_config_string(os.getenv('ALLOWED_HOSTS', ''))
 
 
 # Application definition
@@ -128,6 +130,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
+STATIC_ROOT = Path(os.getenv('STATIC_ROOT', BASE_DIR / 'staticfiles'))
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
@@ -146,3 +149,14 @@ AUTH_USER_MODEL = 'accounts.User'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
+
+
+# CSRF
+
+CSRF_TRUSTED_ORIGINS = split_config_string(os.getenv('CSRF_TRUSTED_ORIGINS', ''))
+
+
+# Cookies
+
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
