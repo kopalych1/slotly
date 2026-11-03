@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
-from django.db.models import Prefetch, Q
+from django.db.models import Max, Min, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.timezone import now
@@ -31,8 +31,29 @@ from scheduling.services import (
 
 @login_required
 def index(request):
+    exams = Exam.objects.filter(
+        Q(enrollment__user=request.user) | Q(owner=request.user)
+    ).annotate(
+        first_start=Min('examday__start'),
+        last_end=Max('examday__end'),
+    )
+    current_time = now()
 
-    return render(request, 'home.html')
+    upcoming = sorted(
+        (e for e in exams if e.last_end is None or e.last_end >= current_time),  # pyright: ignore[reportAttributeAccessIssue]
+        key=lambda e: (e.first_start is None, e.first_start),  # pyright: ignore[reportAttributeAccessIssue]
+    )
+    past = sorted(
+        (e for e in exams if e.last_end is not None and e.last_end < current_time),  # pyright: ignore[reportAttributeAccessIssue]
+        key=lambda e: e.last_end,  # pyright: ignore[reportAttributeAccessIssue]
+        reverse=True,
+    )
+
+    all_exams = upcoming + past
+    if not request.user.is_teacher and len(all_exams) == 1:
+        return redirect('exam_detail', pk=all_exams[0].pk)
+
+    return render(request, 'home.html', {'upcoming': upcoming, 'past': past})
 
 
 @login_required

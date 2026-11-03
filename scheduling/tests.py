@@ -943,3 +943,76 @@ class WithdrawOfferTests(SchedulingTestCase):
 
         with self.assertRaises(NotEnrolledError):
             withdraw_offer(offer.pk, outsider)
+
+
+class HomeViewTests(SchedulingTestCase):
+    def make_exam(self, name, days_from_now, enrolled=()):
+        exam = Exam.objects.create(
+            name=name,
+            owner=self.teacher,
+            slots_change_deadline=now() + timedelta(days=days_from_now + 7),
+        )
+        start = now() + timedelta(days=days_from_now)
+        ExamDay.objects.create(exam=exam, start=start, end=start + timedelta(hours=1))
+        for user in enrolled:
+            Enrollment.objects.create(exam=exam, user=user)
+        return exam
+
+    def test_student_with_one_exam_is_redirected(self):
+        self.client.force_login(self.students[0])
+
+        response = self.client.get(reverse('home'))
+
+        self.assertRedirects(
+            response,
+            reverse('exam_detail', kwargs={'pk': self.exam.pk}),
+            fetch_redirect_response=False,
+        )
+
+    def test_student_with_two_exams_sees_list_by_date(self):
+        later = self.make_exam('Later', 20, enrolled=[self.students[0]])
+        self.client.force_login(self.students[0])
+
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['upcoming'], [self.exam, later])
+
+    def test_finished_exam_goes_to_past(self):
+        old = self.make_exam('Old', -5, enrolled=[self.students[0]])
+        self.client.force_login(self.students[0])
+
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.context['past'], [old])
+        self.assertEqual(response.context['upcoming'], [self.exam])
+
+    def test_teacher_sees_own_exams_without_redirect(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['upcoming'], [self.exam])
+
+    def test_other_exams_are_hidden(self):
+        self.make_exam('Not mine', 10, enrolled=[self.students[1]])
+        self.make_exam('Mine too', 15, enrolled=[self.students[0]])
+        self.client.force_login(self.students[0])
+
+        response = self.client.get(reverse('home'))
+
+        names = [e.name for e in response.context['upcoming']]
+        self.assertEqual(names, ['Test exam', 'Mine too'])
+
+    def test_user_without_exams_sees_hint(self):
+        newbie = User.objects.create_user(
+            username='newbie', password='pass', role=User.Role.STUDENT
+        )
+        self.client.force_login(newbie)
+
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['upcoming'], [])
+        self.assertEqual(response.context['past'], [])

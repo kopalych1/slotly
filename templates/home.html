@@ -1,6 +1,50 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{% trans "Exams" %} · Slotly{% endblock %}
 {% block content %}
   <h1>{% trans "Exams" %}</h1>
-  <p class="muted">{% trans "Your exams will appear here." %}</p>
+  {% if not upcoming and not past %}
+    <p class="muted">
+      {% if user.is_teacher %}
+        {% trans "You have no exams yet." %}
+      {% else %}
+        {% trans "You are not enrolled in any exam yet. Open the invitation link from your teacher." %}
+      {% endif %}
+    </p>
+  {% endif %}
+  {% if upcoming %}
+    <ul class="exam-list">
+      {% for exam in upcoming %}
+        <li>
+          <a class="exam-card" href="{% url 'exam_detail' exam.pk %}">
+            <span class="exam-card__name">{{ exam.name }}</span>
+            <span class="exam-card__meta muted">
+              {% if exam.first_start %}
+                {% if exam.first_start|date:"Y-m-d" == exam.last_end|date:"Y-m-d" %}
+                  {{ exam.first_start|date:"d M" }}
+                {% else %}
+                  {{ exam.first_start|date:"d M" }} – {{ exam.last_end|date:"d M" }}
+                {% endif %}
+              {% else %}
+                {% trans "Dates are not set yet" %}
+              {% endif %}
+            </span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if past %}
+    <h2 class="exam-list__title">{% trans "Past exams" %}</h2>
+    <ul class="exam-list exam-list--past">
+      {% for exam in past %}
+        <li>
+          <a class="exam-card" href="{% url 'exam_detail' exam.pk %}">
+            <span class="exam-card__name">{{ exam.name }}</span>
+            <span class="exam-card__meta muted">{{ exam.last_end|date:"d M Y" }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
 {% endblock %}
