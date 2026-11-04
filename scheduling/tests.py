@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
@@ -16,6 +17,7 @@ from scheduling.exceptions import (
     InviteNotFoundError,
     InviteRevokedError,
     NotEnrolledError,
+    NotExamOwnerError,
     NotOfferorError,
     NotSlotOwnerError,
     NotWantedSlotOwnerError,
@@ -23,11 +25,15 @@ from scheduling.exceptions import (
     OfferLimitError,
     OfferNotAwaitingError,
     OfferOutdatedError,
+    OverlappingDaysError,
     SameSlotError,
     SlotAlreadyOwnedError,
+    SlotDurationLockedError,
+    SlotGenerationError,
     SlotNotFreeError,
     SlotsAlreadyExistError,
     TeacherCannotEnrollError,
+    TeacherRequiredError,
     WantedSlotFreeError,
 )
 from scheduling.models import Enrollment, Exam, ExamDay, Invite, Offer, Slot, SwapLog
@@ -39,6 +45,7 @@ from scheduling.services import (
     create_offer,
     decline_offer,
     release_slot,
+    save_exam,
     take_slot,
     withdraw_offer,
 )
@@ -1053,3 +1060,137 @@ class HomeViewTests(SchedulingTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['upcoming'], [])
         self.assertEqual(response.context['past'], [])
+
+
+class SaveExamTests(SchedulingTestCase):
+    def setUp(self):
+        self.base = now().replace(minute=0, second=0, microsecond=0) + timedelta(
+            days=30
+        )
+
+    def call(self, **overrides):
+        args = {
+            'user': self.teacher,
+            'exam': None,
+            'name': 'New',
+            'slot_duration': 20,
+            'deadline': now() + timedelta(days=60),
+            'days': [],
+        }
+        args.update(overrides)
+        return save_exam(**args)
+
+    def span(self, offset_hours=0, hours=1):
+        start = self.base + timedelta(hours=offset_hours)
+        return (start, start + timedelta(hours=hours))
+
+    def test_creates_exam_with_days_and_slots(self):
+        exam = self.call(days=[self.span(0, 1), self.span(24, 2)])
+
+        self.assertEqual(exam.owner, self.teacher)
+        self.assertEqual(exam.name, 'New')
+        self.assertEqual(ExamDay.objects.filter(exam=exam).count(), 2)
+        self.assertEqual(Slot.objects.filter(exam=exam).count(), 3 + 6)
+
+    def test_failure_midway_rolls_back_everything(self):
+        days_before = ExamDay.objects.count()
+        slots_before = Slot.objects.count()
+
+        with (
+            patch(
+                'scheduling.services.bulk_fill_slots',
+                side_effect=[[], SlotGenerationError()],
+            ),
+            self.assertRaises(SlotGenerationError),
+        ):
+            self.call(days=[self.span(0, 1), self.span(24, 1)])
+
+        self.assertFalse(Exam.objects.filter(name='New').exists())
+        self.assertEqual(ExamDay.objects.count(), days_before)
+        self.assertEqual(Slot.objects.count(), slots_before)
+
+    def test_student_cannot_save_exam(self):
+        with self.assertRaises(TeacherRequiredError):
+            self.call(user=self.students[0])
+
+        self.assertFalse(Exam.objects.filter(name='New').exists())
+
+    def test_only_owner_can_update(self):
+        other = User.objects.create_user(
+            username='other', password='pass', role=User.Role.TEACHER
+        )
+
+        with self.assertRaises(NotExamOwnerError):
+            self.call(user=other, exam=self.exam, name='Hijacked')
+
+        self.exam.refresh_from_db()
+        self.assertEqual(self.exam.name, 'Test exam')
+
+    def test_update_changes_name_and_deadline_but_keeps_slots(self):
+        new_deadline = now() + timedelta(days=3)
+
+        self.call(exam=self.exam, name='Renamed', deadline=new_deadline)
+
+        self.exam.refresh_from_db()
+        self.assertEqual(self.exam.name, 'Renamed')
+        self.assertEqual(self.exam.slots_change_deadline, new_deadline)
+        self.assertEqual(Slot.objects.filter(exam=self.exam).count(), 9)
+
+    def test_duration_is_locked_once_slots_exist(self):
+        with self.assertRaises(SlotDurationLockedError):
+            self.call(exam=self.exam, slot_duration=30)
+
+        self.exam.refresh_from_db()
+        self.assertEqual(self.exam.slot_duration, 20)
+
+    def test_duration_can_change_before_any_slots_exist(self):
+        exam = self.call()  # no days yet, so no slots
+
+        self.call(exam=exam, slot_duration=30, days=[self.span(0, 1)])
+
+        exam.refresh_from_db()
+        self.assertEqual(exam.slot_duration, 30)
+        self.assertEqual(Slot.objects.filter(exam=exam).count(), 2)
+
+    def test_adds_day_to_existing_exam(self):
+        self.call(exam=self.exam, days=[self.span(0, 1)])
+
+        self.assertEqual(ExamDay.objects.filter(exam=self.exam).count(), 2)
+        self.assertEqual(Slot.objects.filter(exam=self.exam).count(), 9 + 3)
+
+    def test_overlap_with_existing_day_is_rejected(self):
+        inside = (
+            self.examday.start + timedelta(minutes=30),
+            self.examday.start + timedelta(hours=1),
+        )
+        around = (
+            self.examday.start - timedelta(hours=1),
+            self.examday.end + timedelta(hours=1),
+        )
+
+        for days in ([inside], [around]):
+            with self.assertRaises(OverlappingDaysError):
+                self.call(exam=self.exam, days=days)
+
+        self.assertEqual(ExamDay.objects.filter(exam=self.exam).count(), 1)
+
+    def test_overlap_between_new_days_is_rejected(self):
+        with self.assertRaises(OverlappingDaysError):
+            self.call(days=[self.span(0, 2), self.span(1, 2)])
+
+        self.assertFalse(Exam.objects.filter(name='New').exists())
+
+    def test_touching_days_are_allowed(self):
+        exam = self.call(days=[self.span(0, 1), self.span(1, 1)])
+
+        self.assertEqual(Slot.objects.filter(exam=exam).count(), 6)
+
+    def test_invalid_days_are_rejected(self):
+        start = self.base
+
+        with self.assertRaises(InvalidDayRangeError):
+            self.call(days=[(start, start)])
+        with self.assertRaises(DayShorterThanSlotError):
+            self.call(days=[(start, start + timedelta(minutes=10))])
+
+        self.assertFalse(Exam.objects.filter(name='New').exists())

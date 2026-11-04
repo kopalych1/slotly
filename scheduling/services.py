@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from itertools import pairwise
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -17,6 +18,7 @@ from scheduling.exceptions import (
     InviteNotFoundError,
     InviteRevokedError,
     NotEnrolledError,
+    NotExamOwnerError,
     NotOfferorError,
     NotSlotOwnerError,
     NotWantedSlotOwnerError,
@@ -24,15 +26,18 @@ from scheduling.exceptions import (
     OfferLimitError,
     OfferNotAwaitingError,
     OfferOutdatedError,
+    OverlappingDaysError,
     SameSlotError,
     SlotAlreadyOwnedError,
     SlotChangedError,
+    SlotDurationLockedError,
     SlotNotFreeError,
     SlotsAlreadyExistError,
     TeacherCannotEnrollError,
+    TeacherRequiredError,
     WantedSlotFreeError,
 )
-from scheduling.models import Enrollment, ExamDay, Invite, Offer, Slot, SwapLog
+from scheduling.models import Enrollment, Exam, ExamDay, Invite, Offer, Slot, SwapLog
 
 
 def ensure_enrolled(user: User, exam_id: int) -> None:
@@ -317,3 +322,65 @@ def withdraw_offer(offer_id: int, user: User):
 
         offer.status = Offer.Status.WITHDRAWN
         offer.save(update_fields=['status'])
+
+
+def save_exam(
+    user: User,
+    exam: Exam | None,
+    name: str,
+    slot_duration: int,  # in minutes
+    deadline: datetime,
+    days: list[tuple[datetime, datetime]],  # new days, timezone-aware
+) -> Exam:
+    if not user.is_teacher:
+        raise TeacherRequiredError()
+
+    slot_length = timedelta(minutes=slot_duration)
+
+    with transaction.atomic():
+        existing_days: list[tuple[datetime, datetime]] = []
+
+        if exam is not None:
+            exam = Exam.objects.select_for_update().get(pk=exam.pk)
+
+            if exam.owner_id != user.pk:  # pyright: ignore[reportAttributeAccessIssue]
+                raise NotExamOwnerError()
+            if (
+                exam.slot_duration != slot_duration
+                and Slot.objects.filter(exam=exam).exists()
+            ):
+                raise SlotDurationLockedError()
+
+            existing_days = list(
+                ExamDay.objects.filter(exam=exam).values_list('start', 'end')
+            )
+
+        for start, end in days:
+            if end <= start:
+                raise InvalidDayRangeError()
+            if not compute_slot_starts(start, end, slot_length):
+                raise DayShorterThanSlotError()
+
+        ranges = sorted(existing_days + days)
+        for (_, prev_end), (next_start, _) in pairwise(ranges):
+            if next_start < prev_end:
+                raise OverlappingDaysError()
+
+        if exam is None:
+            exam = Exam.objects.create(
+                name=name,
+                owner=user,
+                slot_duration=slot_duration,
+                slots_change_deadline=deadline,
+            )
+        else:
+            exam.name = name
+            exam.slot_duration = slot_duration
+            exam.slots_change_deadline = deadline
+            exam.save(update_fields=['name', 'slot_duration', 'slots_change_deadline'])
+
+        for start, end in days:
+            day = ExamDay.objects.create(exam=exam, start=start, end=end)
+            bulk_fill_slots(day)
+
+        return exam

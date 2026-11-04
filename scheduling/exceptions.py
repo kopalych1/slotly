@@ -124,3 +124,23 @@ class InviteLimitReachedError(InviteError):
 
 class TeacherCannotEnrollError(InviteError):
     message = _('Teachers cannot join an exam as students')
+
+
+class ExamError(SchedulingError):
+    message = _('The exam cannot be saved')
+
+
+class TeacherRequiredError(ExamError):
+    message = _('Only teachers can manage exams')
+
+
+class NotExamOwnerError(ExamError):
+    message = _('You are not the owner of this exam')
+
+
+class SlotDurationLockedError(ExamError):
+    message = _('Slot duration cannot be changed once slots exist')
+
+
+class OverlappingDaysError(ExamError):
+    message = _('Exam days must not overlap')
