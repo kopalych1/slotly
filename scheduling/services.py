@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -40,23 +40,29 @@ def ensure_enrolled(user: User, exam_id: int) -> None:
         raise NotEnrolledError()
 
 
+def compute_slot_starts(
+    start: datetime, end: datetime, slot_duration: timedelta
+) -> list[datetime]:
+
+    slots_amount = (end - start) // slot_duration
+
+    return [start + i * slot_duration for i in range(slots_amount)]
+
+
 def bulk_fill_slots(examday: ExamDay) -> list[Slot]:
     if examday.end <= examday.start:
         raise InvalidDayRangeError()
 
-    slot_duration = timedelta(minutes=examday.exam.slot_duration)
-    slots_amount = (examday.end - examday.start) // slot_duration
+    slot_starts = compute_slot_starts(
+        examday.start, examday.end, timedelta(minutes=examday.exam.slot_duration)
+    )
 
-    if slots_amount == 0:
+    if len(slot_starts) == 0:
         raise DayShorterThanSlotError()
 
     slots = [
-        Slot(
-            exam=examday.exam,
-            exam_day=examday,
-            start=examday.start + i * slot_duration,
-        )
-        for i in range(slots_amount)
+        Slot(exam=examday.exam, exam_day=examday, start=slot_start)
+        for slot_start in slot_starts
     ]
 
     with transaction.atomic():

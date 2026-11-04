@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils.timezone import now
 
@@ -35,6 +35,7 @@ from scheduling.services import (
     accept_invite,
     accept_offer,
     bulk_fill_slots,
+    compute_slot_starts,
     create_offer,
     decline_offer,
     release_slot,
@@ -78,6 +79,42 @@ class SchedulingTestCase(TestCase):
     @staticmethod
     def owner_of(slot: Slot):
         return Slot.objects.get(pk=slot.pk).owner
+
+
+class ComputeSlotStartsTests(SimpleTestCase):
+    def setUp(self):
+        self.start = now().replace(second=0, microsecond=0)
+        self.step = timedelta(minutes=20)
+
+    def test_exact_fit(self):
+        starts = compute_slot_starts(
+            self.start, self.start + timedelta(hours=1), self.step
+        )
+
+        self.assertEqual(
+            starts,
+            [self.start, self.start + self.step, self.start + 2 * self.step],
+        )
+
+    def test_partial_last_slot_is_dropped(self):
+        starts = compute_slot_starts(
+            self.start, self.start + timedelta(minutes=50), self.step
+        )
+
+        self.assertEqual(len(starts), 2)
+
+    def test_shorter_than_one_slot_gives_empty_list(self):
+        starts = compute_slot_starts(
+            self.start, self.start + timedelta(minutes=10), self.step
+        )
+
+        self.assertEqual(starts, [])
+
+    def test_end_not_after_start_gives_empty_list(self):
+        self.assertEqual(compute_slot_starts(self.start, self.start, self.step), [])
+        self.assertEqual(
+            compute_slot_starts(self.start, self.start - self.step, self.step), []
+        )
 
 
 class BulkFillSlotsTests(TestCase):
