@@ -492,3 +492,223 @@ a.btn {
     scroll-snap-align: start;
   }
 }
+
+/* Exam editor */
+.settings {
+  margin: 1rem 0 1.5rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.settings__row {
+  display: grid;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+@media (min-width: 40rem) {
+  .settings__row {
+    grid-template-columns: minmax(0, 1fr) 7.5rem 13.5rem auto;
+  }
+
+  .settings {
+    grid-template-columns: minmax(0, 2fr) 8rem minmax(0, 1.2fr) auto;
+    align-items: start;
+  }
+
+  /* Aligns the button with the inputs, whatever errors sit under the fields */
+  .settings__save {
+    padding-top: 1.75rem;
+  }
+}
+
+.settings .field {
+  margin: 0;
+}
+
+.settings input {
+  min-height: 2.75rem;
+}
+
+.settings__save .btn {
+  min-height: 2.75rem;
+}
+
+@media (max-width: 39.99rem) {
+  .settings__save .btn {
+    width: 100%;
+  }
+}
+
+.settings__notes {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.field input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.input-suffix {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.input-suffix input {
+  flex: 1;
+  min-width: 0;
+}
+
+.input-suffix__unit {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.day--draft,
+.day--add {
+  padding: 0.75rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.day--draft {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.day__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.day__head .day__title {
+  margin: 0;
+}
+
+.day__fields {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.day__fields .field {
+  margin: 0;
+}
+
+.day__fields label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.day__fields input {
+  min-height: 2.5rem;
+  min-width: 0;
+  padding-inline: 0.5rem;
+}
+
+.day__fields .field {
+  min-width: 0;
+}
+
+.board > .day {
+  min-width: 0;
+}
+
+.exam-edit .board {
+  grid-auto-columns: minmax(16rem, 1fr);
+}
+
+.day__times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.day__preview-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.day__summary {
+  margin: 0 0 0.5rem;
+  min-height: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.slot--preview {
+  min-height: 2.25rem;
+  padding: 0.25rem 0.75rem;
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+}
+
+.icon-btn--small {
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.add-day {
+  display: grid;
+  place-items: center;
+  gap: 0.25rem;
+  width: 100%;
+  min-height: 8rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.add-day:hover {
+  color: var(--accent);
+}
+
+.add-day__plus {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.form-actions {
+  position: sticky;
+  bottom: 0;
+  padding: 1rem 0;
+  background: var(--bg);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.exam-edit .exam-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}

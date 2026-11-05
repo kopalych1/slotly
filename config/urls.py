@@ -55,4 +55,6 @@ urlpatterns = [
     ),
     path('join/<str:token>/', scheduling.views.join_invite, name='join_invite'),
     path('join/<str:token>/register/', scheduling.views.register, name='register'),
+    path('exams/new/', scheduling.views.exam_edit, name='exam_new'),
+    path('exams/<int:pk>/edit/', scheduling.views.exam_edit, name='exam_edit'),
 ]

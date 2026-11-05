@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% if exam %}{{ exam.name }}{% else %}{% trans "New exam" %}{% endif %} · Slotly{% endblock %}
+{% block content %}
+  <form method="post"
+        class="exam-edit"
+        autocomplete="off"
+        novalidate
+        data-start-dirty="{% if form.errors or day_formset.total_error_count %}true{% endif %}">
+    {% csrf_token %}
+    <header class="exam-header">
+      <h1>
+        {% if exam %}
+          {% trans "Edit exam" %}
+        {% else %}
+          {% trans "New exam" %}
+        {% endif %}
+      </h1>
+      {% if exam %}
+        <a href="{% url 'exam_detail' exam.pk %}">{% trans "View exam" %}</a>
+      {% endif %}
+    </header>
+    {% for error in form.non_field_errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+    {% for error in day_formset.non_form_errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+    <section class="settings">
+      <div class="settings__row">
+        <div class="field">
+          <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+          {{ form.name }}
+        </div>
+        <div class="field">
+          <label for="{{ form.slot_duration.id_for_label }}">{{ form.slot_duration.label }}</label>
+          <div class="input-suffix">
+            {{ form.slot_duration }}
+            <span class="input-suffix__unit">{% trans "min" %}</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="{{ form.slots_change_deadline.id_for_label }}">{{ form.slots_change_deadline.label }}</label>
+          {{ form.slots_change_deadline }}
+        </div>
+        <div class="settings__save">
+          <button class="btn btn--primary"
+                  type="submit"
+                  id="save-button">{% trans "Save" %}</button>
+        </div>
+      </div>
+      {% if form.name.errors or form.slot_duration.errors or form.slots_change_deadline.errors or duration_locked %}
+        <ul class="settings__notes">
+          {% for field in form %}
+            {% for error in field.errors %}
+              <li class="field__error">{{ field.label }}: {{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+          {% if duration_locked %}
+            <li class="field__help">{% trans "Slot length is locked because slots already exist." %}</li>
+          {% endif %}
+        </ul>
+      {% endif %}
+    </section>
+    {{ day_formset.management_form }}
+    <div class="board"
+         id="board"
+         data-label-slots="{% trans 'Slots' %}"
+         data-msg-too-short="{% trans 'Shorter than one slot' %}"
+         data-msg-end-before-start="{% trans 'The day must end after it starts' %}"
+         data-msg-incomplete="{% trans 'Enter the start and end time to see the slots' %}">
+      {% for day in existing_days %}
+        <section class="day">
+          <h2 class="day__title">{{ day.start|date:"l, d M" }}</h2>
+          <p class="muted">{{ day.start|time:"H:i" }}–{{ day.end|time:"H:i" }}</p>
+          <ul class="slots">
+            {% for slot in day.slot_set.all %}
+              <li class="slot {% if slot.owner_id %}slot--taken{% else %}slot--free{% endif %}">
+                <div class="slot__main">
+                  <time class="slot__time"
+                        datetime="{{ slot.start|date:'c' }}">{{ slot.start|time:"H:i" }}</time>
+                  <span class="slot__who">
+                    {% if slot.owner_id %}{{ slot.owner.get_full_name|default:slot.owner.username }}{% else %}{% trans "Free" %}{% endif %}
+                  </span>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endfor %}
+      {% for day_form in day_formset %}
+        {% include "partials/day_draft.html" with day_form=day_form %}
+      {% endfor %}
+      <section class="day day--add">
+        <button type="button" class="add-day" id="add-day">
+          <span class="add-day__plus" aria-hidden="true">+</span>
+          {% trans "Add day" %}
+        </button>
+      </section>
+    </div>
+    <template id="day-template">
+      {% include "partials/day_draft.html" with day_form=day_formset.empty_form %}
+    </template>
+  </form>
+{% endblock %}
+{% block scripts %}
+  <script src="{% static 'js/exam_edit.js' %}" defer></script>
+{% endblock %}

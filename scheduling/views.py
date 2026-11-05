@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
+from django.core.exceptions import PermissionDenied
 from django.db.models import Max, Min, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -15,6 +16,7 @@ from scheduling.exceptions import (
     SchedulingError,
     TeacherCannotEnrollError,
 )
+from scheduling.forms import DayFormSet, ExamForm
 from scheduling.models import Enrollment, Exam, ExamDay, Invite, Offer, Slot
 from scheduling.services import (
     MAX_ACTIVE_OFFERS,
@@ -24,6 +26,7 @@ from scheduling.services import (
     decline_offer,
     get_invite_problem,
     release_slot,
+    save_exam,
     take_slot,
     withdraw_offer,
 )
@@ -300,4 +303,81 @@ def register(request, token: str):
 
     return render(
         request, 'register.html', {'form': form, 'invite': invite, 'exam': invite.exam}
+    )
+
+
+@login_required
+def exam_edit(request, pk: int | None = None):
+    if not request.user.is_teacher:
+        raise PermissionDenied
+
+    exam = (
+        get_object_or_404(Exam, owner=request.user, pk=pk) if pk is not None else None
+    )
+
+    initial = (
+        {
+            'name': exam.name,
+            'slot_duration': exam.slot_duration,
+            'slots_change_deadline': exam.slots_change_deadline,
+        }
+        if exam
+        else None
+    )
+    duration_locked = exam is not None and Slot.objects.filter(exam=exam).exists()
+
+    if request.method == 'POST':
+        exam_form = ExamForm(request.POST, initial=initial)
+        day_formset = DayFormSet(request.POST)
+    else:
+        exam_form = ExamForm(initial=initial)
+        day_formset = DayFormSet()
+
+    if duration_locked:
+        exam_form.fields['slot_duration'].disabled = True
+
+    if request.method == 'POST':
+        exam_valid = exam_form.is_valid()
+        days_valid = day_formset.is_valid()
+
+        if exam_valid and days_valid:
+            days = [
+                (f.cleaned_data['start_dt'], f.cleaned_data['end_dt'])
+                for f in day_formset
+                if f.cleaned_data and not f.cleaned_data.get('DELETE')
+            ]
+            try:
+                saved = save_exam(
+                    request.user,
+                    exam,
+                    name=exam_form.cleaned_data['name'],
+                    slot_duration=exam_form.cleaned_data['slot_duration'],
+                    deadline=exam_form.cleaned_data['slots_change_deadline'],
+                    days=days,
+                )
+            except SchedulingError as e:
+                exam_form.add_error(None, str(e))
+            else:
+                messages.success(request, _('Exam saved'))
+                return redirect('exam_edit', pk=saved.pk)
+
+    return render(
+        request,
+        'edit_exam.html',
+        {
+            'exam': exam,
+            'form': exam_form,
+            'day_formset': day_formset,
+            'duration_locked': duration_locked,
+            'existing_days': (
+                ExamDay.objects.filter(exam=exam).prefetch_related(
+                    Prefetch(
+                        'slot_set',
+                        queryset=Slot.objects.select_related('owner').order_by('start'),
+                    )
+                )
+                if exam
+                else []
+            ),
+        },
     )

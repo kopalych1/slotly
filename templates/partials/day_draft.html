@@ -1,0 +1,39 @@
+{% load i18n %}
+<section class="day day--draft"
+         data-draft-row
+         {% if day_form.DELETE.value %}hidden{% endif %}>
+  <header class="day__head">
+    <h2 class="day__title">{% trans "New day" %}</h2>
+    <button type="button"
+            class="icon-btn icon-btn--small"
+            data-remove-row
+            aria-label="{% trans 'Remove day' %}">×</button>
+  </header>
+  <div class="day__fields">
+    {% for error in day_form.non_field_errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+    <div class="field">
+      <label for="{{ day_form.date.id_for_label }}">{{ day_form.date.label }}</label>
+      {{ day_form.date }}
+      {% for error in day_form.date.errors %}<p class="field__error">{{ error }}</p>{% endfor %}
+    </div>
+    <div class="day__times">
+      <div class="field">
+        <label for="{{ day_form.start.id_for_label }}">{{ day_form.start.label }}</label>
+        {{ day_form.start }}
+        {% for error in day_form.start.errors %}<p class="field__error">{{ error }}</p>{% endfor %}
+      </div>
+      <div class="field">
+        <label for="{{ day_form.end.id_for_label }}">{{ day_form.end.label }}</label>
+        {{ day_form.end }}
+        {% for error in day_form.end.errors %}<p class="field__error">{{ error }}</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+  <div hidden>{{ day_form.DELETE }}</div>
+  <div class="day__preview">
+    <h3 class="day__preview-title">{% trans "Preview" %}</h3>
+    <p class="day__summary muted" data-summary aria-live="polite"></p>
+    <ul class="slots" data-preview>
+    </ul>
+  </div>
+</section>
