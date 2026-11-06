@@ -113,6 +113,7 @@ def exam_detail(request, pk: int):
             'incoming_offers': incoming,
             'offers_left': max(0, MAX_ACTIVE_OFFERS - sent_count),
             'history_list': history_list,
+            'is_owner': exam.owner_id == request.user.pk,  # pyright: ignore[reportAttributeAccessIssue]
         },
     )
 

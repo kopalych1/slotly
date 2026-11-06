@@ -705,10 +705,19 @@ a.btn {
   cursor: not-allowed;
 }
 
-.exam-edit .exam-header {
+.exam-header__row {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 0.5rem 1rem;
+  margin: 1.5rem 0 0.5rem;
+}
+.exam-header__row h1 {
+  margin: 0;
+  min-width: 0;
+}
+.exam-header__row .btn {
+  margin-left: auto;
+  flex-shrink: 0;
 }

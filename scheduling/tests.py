@@ -1380,3 +1380,38 @@ class ExamEditViewTests(SchedulingTestCase):
         self.exam.refresh_from_db()
         self.assertEqual(self.exam.name, 'Renamed')
         self.assertEqual(self.exam.slot_duration, 20)
+
+
+class ExamDetailRoleTests(SchedulingTestCase):
+    def setUp(self):
+        self.url = reverse('exam_detail', kwargs={'pk': self.exam.pk})
+        self.edit_url = reverse('exam_edit', kwargs={'pk': self.exam.pk})
+        self.take_url = reverse('slot_take', kwargs={'slot_id': self.slots[3].pk})
+
+    def test_owner_sees_edit_link_names_and_no_student_actions(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['is_owner'])
+        self.assertContains(response, self.edit_url)
+        self.assertContains(response, 'student0')
+        self.assertNotContains(response, self.take_url)
+
+    def test_student_sees_actions_but_no_edit_link(self):
+        self.client.force_login(self.students[0])
+
+        response = self.client.get(self.url)
+
+        self.assertFalse(response.context['is_owner'])
+        self.assertContains(response, self.take_url)
+        self.assertNotContains(response, self.edit_url)
+
+    def test_other_teacher_gets_404(self):
+        other = User.objects.create_user(
+            username='other', password='pass', role=User.Role.TEACHER
+        )
+        self.client.force_login(other)
+
+        self.assertEqual(self.client.get(self.url).status_code, 404)

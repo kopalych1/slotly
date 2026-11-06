@@ -9,16 +9,19 @@
         data-start-dirty="{% if form.errors or day_formset.total_error_count %}true{% endif %}">
     {% csrf_token %}
     <header class="exam-header">
-      <h1>
+      <div class="exam-header__row">
+        <h1>
+          {% if exam %}
+            {% trans "Edit exam" %}
+          {% else %}
+            {% trans "New exam" %}
+          {% endif %}
+        </h1>
         {% if exam %}
-          {% trans "Edit exam" %}
-        {% else %}
-          {% trans "New exam" %}
+          <a class="btn btn--ghost"
+             href="{% url 'exam_detail' exam.pk %}">{% trans "View exam" %}</a>
         {% endif %}
-      </h1>
-      {% if exam %}
-        <a href="{% url 'exam_detail' exam.pk %}">{% trans "View exam" %}</a>
-      {% endif %}
+      </div>
     </header>
     {% for error in form.non_field_errors %}<p class="form-error">{{ error }}</p>{% endfor %}
     {% for error in day_formset.non_form_errors %}<p class="form-error">{{ error }}</p>{% endfor %}
