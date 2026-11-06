@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
-from django.utils.timezone import now
+from django.utils.timezone import localdate, localtime, now
 
 from accounts.models import User
 from scheduling.exceptions import (
@@ -1194,3 +1194,189 @@ class SaveExamTests(SchedulingTestCase):
             self.call(days=[(start, start + timedelta(minutes=10))])
 
         self.assertFalse(Exam.objects.filter(name='New').exists())
+
+
+class ExamEditViewTests(SchedulingTestCase):
+    def setUp(self):
+        self.new_url = reverse('exam_new')
+        self.edit_url = reverse('exam_edit', kwargs={'pk': self.exam.pk})
+        self.other_teacher = User.objects.create_user(
+            username='other', password='pass', role=User.Role.TEACHER
+        )
+        self.future_date = localdate() + timedelta(days=40)
+
+    def payload(self, days=(), **overrides):
+        deadline = localtime(now() + timedelta(days=30)).strftime('%Y-%m-%d %H:%M')
+        data = {
+            'name': 'Brand new',
+            'slot_duration': 20,
+            'slots_change_deadline': deadline,
+            'form-TOTAL_FORMS': len(days),
+            'form-INITIAL_FORMS': 0,
+            'form-MIN_NUM_FORMS': 0,
+            'form-MAX_NUM_FORMS': 1000,
+        }
+        for i, (date, start, end) in enumerate(days):
+            data[f'form-{i}-date'] = date.isoformat()
+            data[f'form-{i}-start'] = start
+            data[f'form-{i}-end'] = end
+        data.update(overrides)
+        return data
+
+    # Access
+
+    def test_anonymous_is_redirected_to_login(self):
+        response = self.client.get(self.new_url)
+
+        self.assertRedirects(
+            response,
+            f'{reverse("login")}?next={self.new_url}',
+            fetch_redirect_response=False,
+        )
+
+    def test_student_gets_403_on_new_and_edit(self):
+        self.client.force_login(self.students[0])
+
+        self.assertEqual(self.client.get(self.new_url).status_code, 403)
+        self.assertEqual(self.client.get(self.edit_url).status_code, 403)
+
+    def test_student_cannot_create_exam(self):
+        self.client.force_login(self.students[0])
+
+        response = self.client.post(self.new_url, self.payload())
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Exam.objects.filter(name='Brand new').exists())
+
+    def test_other_teacher_gets_404_on_foreign_exam(self):
+        self.client.force_login(self.other_teacher)
+
+        self.assertEqual(self.client.get(self.edit_url).status_code, 404)
+        response = self.client.post(self.edit_url, self.payload(name='Hijacked'))
+
+        self.assertEqual(response.status_code, 404)
+        self.exam.refresh_from_db()
+        self.assertEqual(self.exam.name, 'Test exam')
+
+    # Showing the page
+
+    def test_teacher_sees_empty_form_for_new_exam(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.get(self.new_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.context['exam'])
+        self.assertEqual(list(response.context['existing_days']), [])
+        self.assertFalse(response.context['duration_locked'])
+
+    def test_owner_sees_existing_exam(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.get(self.edit_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['form'].initial['name'], 'Test exam')
+        self.assertEqual(list(response.context['existing_days']), [self.examday])
+        self.assertTrue(response.context['duration_locked'])
+
+    # Saving
+
+    def test_post_creates_exam_with_days_and_slots(self):
+        self.client.force_login(self.teacher)
+        days = [
+            (self.future_date, '09:00', '10:00'),  # 3 slots
+            (self.future_date + timedelta(days=1), '14:00', '15:40'),  # 5 slots
+        ]
+
+        response = self.client.post(self.new_url, self.payload(days=days))
+
+        exam = Exam.objects.get(name='Brand new')
+        self.assertRedirects(
+            response,
+            reverse('exam_edit', kwargs={'pk': exam.pk}),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(exam.owner, self.teacher)
+        self.assertEqual(ExamDay.objects.filter(exam=exam).count(), 2)
+        self.assertEqual(Slot.objects.filter(exam=exam).count(), 8)
+
+    def test_blank_and_deleted_rows_are_ignored(self):
+        self.client.force_login(self.teacher)
+        data = self.payload(
+            days=[
+                (self.future_date, '09:00', '10:00'),
+                (self.future_date, '', ''),
+            ]
+        )
+        data['form-0-DELETE'] = 'on'
+        data['form-1-date'] = ''
+
+        response = self.client.post(self.new_url, data)
+
+        exam = Exam.objects.get(name='Brand new')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(ExamDay.objects.filter(exam=exam).count(), 0)
+
+    def test_invalid_form_creates_nothing_and_keeps_input(self):
+        self.client.force_login(self.teacher)
+        days = [(self.future_date, '09:00', '10:00')]
+
+        response = self.client.post(self.new_url, self.payload(days=days, name=''))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['form'].errors)
+        formset = response.context['day_formset']
+        self.assertEqual(formset.forms[0]['start'].value(), '09:00')
+        self.assertFalse(Exam.objects.filter(name='').exists())
+        self.assertEqual(ExamDay.objects.count(), 1)  # only the setUp day
+
+    def test_invalid_day_is_reported_without_saving(self):
+        self.client.force_login(self.teacher)
+        days = [(self.future_date, '10:00', '09:00')]  # ends before it starts
+
+        response = self.client.post(self.new_url, self.payload(days=days))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['day_formset'].errors[0])
+        self.assertFalse(Exam.objects.filter(name='Brand new').exists())
+
+    def test_service_error_is_shown_in_form_and_nothing_is_saved(self):
+        self.client.force_login(self.teacher)
+        days = [
+            (self.future_date, '09:00', '10:00'),
+            (self.future_date, '09:30', '10:30'),  # overlaps the first one
+        ]
+
+        response = self.client.post(self.new_url, self.payload(days=days))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            str(OverlappingDaysError()),
+            list(response.context['form'].non_field_errors()),
+        )
+        self.assertFalse(Exam.objects.filter(name='Brand new').exists())
+
+    def test_edit_adds_day_and_keeps_existing_slots(self):
+        self.client.force_login(self.teacher)
+        days = [(self.future_date, '09:00', '10:00')]
+
+        response = self.client.post(
+            self.edit_url, self.payload(days=days, name='Test exam')
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(ExamDay.objects.filter(exam=self.exam).count(), 2)
+        self.assertEqual(Slot.objects.filter(exam=self.exam).count(), 9 + 3)
+
+    def test_locked_duration_is_ignored_but_name_is_saved(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.post(
+            self.edit_url, self.payload(name='Renamed', slot_duration=30)
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.exam.refresh_from_db()
+        self.assertEqual(self.exam.name, 'Renamed')
+        self.assertEqual(self.exam.slot_duration, 20)
