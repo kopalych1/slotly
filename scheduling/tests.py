@@ -1,6 +1,8 @@
 from datetime import timedelta
 from unittest.mock import patch
 
+from django.core.exceptions import ValidationError
+from django.forms import modelform_factory
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils.timezone import localdate, localtime, now
@@ -36,6 +38,7 @@ from scheduling.exceptions import (
     TeacherRequiredError,
     WantedSlotFreeError,
 )
+from scheduling.forms import ExamForm
 from scheduling.models import Enrollment, Exam, ExamDay, Invite, Offer, Slot, SwapLog
 from scheduling.services import (
     accept_invite,
@@ -1415,3 +1418,98 @@ class ExamDetailRoleTests(SchedulingTestCase):
         self.client.force_login(other)
 
         self.assertEqual(self.client.get(self.url).status_code, 404)
+
+
+class RoleRulesTests(SchedulingTestCase):
+    def make_student(self, name='extra'):
+        return User.objects.create_user(
+            username=name, password='pass', role=User.Role.STUDENT
+        )
+
+    def test_teacher_cannot_be_enrolled(self):
+        enrollment = Enrollment(exam=self.exam, user=self.teacher)
+
+        with self.assertRaises(ValidationError):
+            enrollment.full_clean()
+
+    def test_student_can_be_enrolled(self):
+        enrollment = Enrollment(exam=self.exam, user=self.make_student())
+
+        enrollment.full_clean()  # does not raise
+
+    def test_student_cannot_own_exam(self):
+        exam = Exam(
+            name='X',
+            owner=self.students[0],
+            slot_duration=20,
+            slots_change_deadline=now() + timedelta(days=1),
+        )
+
+        with self.assertRaises(ValidationError):
+            exam.full_clean()
+
+    def test_teacher_can_own_exam(self):
+        exam = Exam(
+            name='X',
+            owner=self.teacher,
+            slot_duration=20,
+            slots_change_deadline=now() + timedelta(days=1),
+        )
+
+        exam.full_clean()  # does not raise
+
+    def test_enrollment_form_offers_only_students(self):
+        form = modelform_factory(Enrollment, fields=('exam', 'user'))()
+
+        users = form.fields['user'].queryset  # pyright: ignore[reportAttributeAccessIssue]
+
+        self.assertIn(self.students[0], users)
+        self.assertNotIn(self.teacher, users)
+
+    def test_exam_form_offers_only_teachers(self):
+        form = modelform_factory(Exam, fields=('owner',))()
+
+        owners = form.fields['owner'].queryset  # pyright: ignore[reportAttributeAccessIssue]
+
+        self.assertIn(self.teacher, owners)
+        self.assertNotIn(self.students[0], owners)
+
+    def test_teacher_cannot_own_slot(self):
+        slot = Slot(
+            exam=self.exam, exam_day=self.examday, start=now(), owner=self.teacher
+        )
+
+        with self.assertRaises(ValidationError):
+            slot.clean()
+
+    def test_student_and_nobody_can_own_slot(self):
+        Slot(
+            exam=self.exam, exam_day=self.examday, start=now(), owner=self.students[0]
+        ).clean()
+        Slot(exam=self.exam, exam_day=self.examday, start=now()).clean()
+
+    def test_teacher_cannot_be_offeror(self):
+        offer = Offer(
+            offeror=self.teacher, offered_slot=self.slots[0], wanted_slot=self.slots[1]
+        )
+
+        with self.assertRaises(ValidationError):
+            offer.clean()
+
+    def test_student_can_be_offeror(self):
+        Offer(
+            offeror=self.students[0],
+            offered_slot=self.slots[0],
+            wanted_slot=self.slots[1],
+        ).clean()
+
+    def test_exam_form_without_owner_is_valid(self):
+        form = ExamForm(
+            {
+                'name': 'X',
+                'slot_duration': 20,
+                'slots_change_deadline': '2030-01-01 10:00',
+            }
+        )
+
+        self.assertTrue(form.is_valid())

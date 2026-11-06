@@ -8,6 +8,8 @@ from django.urls import reverse
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
+from accounts.models import User
+
 
 def day_from_now():
     return now() + timedelta(days=1)
@@ -20,7 +22,10 @@ def generate_invite_token():
 class Exam(models.Model):
     name = models.CharField(_('Exam name'), max_length=200)
     owner = models.ForeignKey(
-        'accounts.User', verbose_name=_('Owner'), on_delete=models.PROTECT
+        'accounts.User',
+        verbose_name=_('Owner'),
+        on_delete=models.PROTECT,
+        limit_choices_to={'role': User.Role.TEACHER},
     )
     slot_duration = models.PositiveIntegerField(
         _('Slot time duration'),
@@ -33,6 +38,11 @@ class Exam(models.Model):
     class Meta:
         verbose_name = _('Exam')
         verbose_name_plural = _('Exams')
+
+    def clean(self) -> None:
+        super().clean()
+        if self.owner_id and not self.owner.is_teacher:  # pyright: ignore[reportAttributeAccessIssue]
+            raise ValidationError({'owner': _('Exam owner must be a teacher')})
 
     def __str__(self):
         return self.name
@@ -84,6 +94,7 @@ class Slot(models.Model):
         blank=True,
         null=True,
         on_delete=models.SET_NULL,
+        limit_choices_to={'role': User.Role.STUDENT},
     )
 
     class Meta:
@@ -101,6 +112,11 @@ class Slot(models.Model):
                 deferrable=models.Deferrable.DEFERRED,
             ),
         )
+
+    def clean(self) -> None:
+        super().clean()
+        if self.owner_id and self.owner.is_teacher:  # pyright: ignore[reportAttributeAccessIssue]
+            raise ValidationError({'owner': _('Slot owner must be a student')})
 
     def __str__(self):
         return f'{self.exam} {self.start:%H:%M}'
@@ -123,7 +139,10 @@ class Offer(models.Model):
         WITHDRAWN = 'R', _('Withdrawn')
 
     offeror = models.ForeignKey(
-        'accounts.User', verbose_name=_('Offeror'), on_delete=models.CASCADE
+        'accounts.User',
+        verbose_name=_('Offeror'),
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': User.Role.STUDENT},
     )
     offered_slot = models.ForeignKey(
         'scheduling.Slot',
@@ -158,6 +177,11 @@ class Offer(models.Model):
                 name='unique_awaiting_offer_per_slot_pair',
             ),
         )
+
+    def clean(self) -> None:
+        super().clean()
+        if self.offeror_id and self.offeror.is_teacher:  # pyright: ignore[reportAttributeAccessIssue]
+            raise ValidationError({'offeror': _('Offeror must be a student')})
 
     def __str__(self):
         return f'{self.offeror} {self.offered_slot} for {self.wanted_slot}'
@@ -223,7 +247,10 @@ class Enrollment(models.Model):
         'scheduling.Exam', verbose_name=_('Exam'), on_delete=models.CASCADE
     )
     user = models.ForeignKey(
-        'accounts.User', verbose_name=_('User'), on_delete=models.CASCADE
+        'accounts.User',
+        verbose_name=_('User'),
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': User.Role.STUDENT},
     )
     created_at = models.DateTimeField(_('Created at'), auto_now_add=True)
 
@@ -237,6 +264,13 @@ class Enrollment(models.Model):
                 name='unique_enrollment_per_exam_user',
             ),
         )
+
+    def clean(self) -> None:
+        super().clean()
+        if self.user_id and self.user.is_teacher:  # pyright: ignore[reportAttributeAccessIssue]
+            raise ValidationError(
+                {'user': _('Only students can be enrolled in an exam')}
+            )
 
     def __str__(self):
         return f'{self.exam.name} - {self.user}'
