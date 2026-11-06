@@ -7,6 +7,7 @@ from django.utils.timezone import now
 
 from accounts.models import User
 from scheduling.exceptions import (
+    DayHasOwnedSlotsError,
     DayShorterThanSlotError,
     DeadlinePassedError,
     DifferentExamError,
@@ -384,3 +385,23 @@ def save_exam(
             bulk_fill_slots(day)
 
         return exam
+
+
+def delete_exam_day(examday_id: int, user: User) -> None:
+    with transaction.atomic():
+        examday = (
+            ExamDay.objects.select_for_update(of=('self',))
+            .select_related('exam')
+            .get(pk=examday_id)
+        )
+
+        if examday.exam.owner_id != user.pk:  # pyright: ignore[reportAttributeAccessIssue]
+            raise NotExamOwnerError()
+
+        slots = list(
+            Slot.objects.select_for_update().filter(exam_day=examday).order_by('pk')
+        )
+        if any(slot.owner_id is not None for slot in slots):  # pyright: ignore[reportAttributeAccessIssue]
+            raise DayHasOwnedSlotsError()
+
+        examday.delete()

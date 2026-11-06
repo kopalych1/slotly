@@ -9,6 +9,7 @@ from django.utils.timezone import localdate, localtime, now
 
 from accounts.models import User
 from scheduling.exceptions import (
+    DayHasOwnedSlotsError,
     DayShorterThanSlotError,
     DeadlinePassedError,
     DifferentExamError,
@@ -47,6 +48,7 @@ from scheduling.services import (
     compute_slot_starts,
     create_offer,
     decline_offer,
+    delete_exam_day,
     release_slot,
     save_exam,
     take_slot,
@@ -1513,3 +1515,134 @@ class RoleRulesTests(SchedulingTestCase):
         )
 
         self.assertTrue(form.is_valid())
+
+
+class DeleteExamDayTests(SchedulingTestCase):
+    def make_empty_day(self):
+        start = now() + timedelta(days=30)
+        day = ExamDay.objects.create(
+            exam=self.exam, start=start, end=start + timedelta(hours=1)
+        )
+        bulk_fill_slots(day)
+        return day
+
+    def test_deletes_day_and_its_slots_only(self):
+        day = self.make_empty_day()
+
+        delete_exam_day(day.pk, self.teacher)
+
+        self.assertFalse(ExamDay.objects.filter(pk=day.pk).exists())
+        self.assertFalse(Slot.objects.filter(exam_day_id=day.pk).exists())
+        self.assertEqual(Slot.objects.filter(exam_day=self.examday).count(), 9)
+
+    def test_raises_if_any_slot_is_owned(self):
+        with self.assertRaises(DayHasOwnedSlotsError):
+            delete_exam_day(self.examday.pk, self.teacher)
+
+        self.assertTrue(ExamDay.objects.filter(pk=self.examday.pk).exists())
+        self.assertEqual(Slot.objects.filter(exam_day=self.examday).count(), 9)
+
+    def test_released_slots_do_not_block_deletion(self):
+        for slot, student in zip(self.slots[:3], self.students):
+            release_slot(slot.pk, student)
+
+        delete_exam_day(self.examday.pk, self.teacher)
+
+        self.assertFalse(ExamDay.objects.filter(pk=self.examday.pk).exists())
+
+    def test_only_exam_owner_can_delete(self):
+        day = self.make_empty_day()
+        other = User.objects.create_user(
+            username='other', password='pass', role=User.Role.TEACHER
+        )
+
+        for user in (other, self.students[0]):
+            with self.assertRaises(NotExamOwnerError):
+                delete_exam_day(day.pk, user)
+
+        self.assertTrue(ExamDay.objects.filter(pk=day.pk).exists())
+
+    def test_unknown_day_raises_does_not_exist(self):
+        with self.assertRaises(ExamDay.DoesNotExist):
+            delete_exam_day(999999, self.teacher)
+
+    def test_deleting_all_days_unlocks_slot_duration(self):
+        for slot, student in zip(self.slots[:3], self.students):
+            release_slot(slot.pk, student)
+        delete_exam_day(self.examday.pk, self.teacher)
+
+        save_exam(
+            self.teacher,
+            self.exam,
+            'Test exam',
+            30,
+            self.exam.slots_change_deadline,
+            [],
+        )
+
+        self.exam.refresh_from_db()
+        self.assertEqual(self.exam.slot_duration, 30)
+
+
+class ExamDayDeleteViewTests(SchedulingTestCase):
+    def setUp(self):
+        start = now() + timedelta(days=30)
+        self.empty_day = ExamDay.objects.create(
+            exam=self.exam, start=start, end=start + timedelta(hours=1)
+        )
+        bulk_fill_slots(self.empty_day)
+        self.url = reverse('examday_delete', kwargs={'pk': self.empty_day.pk})
+        self.edit_url = reverse('exam_edit', kwargs={'pk': self.exam.pk})
+
+    def test_owner_deletes_empty_day_and_returns_to_editor(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, self.edit_url, fetch_redirect_response=False)
+        self.assertFalse(ExamDay.objects.filter(pk=self.empty_day.pk).exists())
+
+    def test_day_with_booked_slots_is_kept_with_message(self):
+        self.client.force_login(self.teacher)
+        url = reverse('examday_delete', kwargs={'pk': self.examday.pk})
+
+        response = self.client.post(url, follow=True)
+
+        self.assertTrue(ExamDay.objects.filter(pk=self.examday.pk).exists())
+        self.assertContains(response, str(DayHasOwnedSlotsError()))
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.teacher)
+
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_anonymous_is_redirected_to_login(self):
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(ExamDay.objects.filter(pk=self.empty_day.pk).exists())
+
+    def test_other_teacher_gets_404_and_day_survives(self):
+        other = User.objects.create_user(
+            username='other', password='pass', role=User.Role.TEACHER
+        )
+        self.client.force_login(other)
+
+        self.assertEqual(self.client.post(self.url).status_code, 404)
+        self.assertTrue(ExamDay.objects.filter(pk=self.empty_day.pk).exists())
+
+    def test_student_gets_404(self):
+        self.client.force_login(self.students[0])
+
+        self.assertEqual(self.client.post(self.url).status_code, 404)
+        self.assertTrue(ExamDay.objects.filter(pk=self.empty_day.pk).exists())
+
+    def test_editor_hides_delete_button_for_booked_day(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.get(self.edit_url)
+
+        self.assertContains(response, self.url)
+        self.assertNotContains(
+            response, reverse('examday_delete', kwargs={'pk': self.examday.pk})
+        )

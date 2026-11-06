@@ -144,3 +144,7 @@ class SlotDurationLockedError(ExamError):
 
 class OverlappingDaysError(ExamError):
     message = _('Exam days must not overlap')
+
+
+class DayHasOwnedSlotsError(ExamError):
+    message = _('Some slots of this day are already taken by students')

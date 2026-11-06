@@ -2,6 +2,7 @@
 {% load i18n static %}
 {% block title %}{% if exam %}{{ exam.name }}{% else %}{% trans "New exam" %}{% endif %} · Slotly{% endblock %}
 {% block content %}
+  {% trans "Delete this day and all its free slots? Unsaved changes on this page will be lost." as delete_day_msg %}
   <form method="post"
         class="exam-edit"
         autocomplete="off"
@@ -85,6 +86,17 @@
               </li>
             {% endfor %}
           </ul>
+          {% if not day.has_owned_slots %}
+            <button type="submit"
+                    class="btn btn--small btn--danger-outline"
+                    formaction="{% url 'examday_delete' day.pk %}"
+                    formnovalidate
+                    onclick="return confirm('{{ delete_day_msg|escapejs }}')">
+              {% trans "Delete day" %}
+            </button>
+          {% else %}
+            <p class="muted day__note">{% trans "Has booked slots" %}</p>
+          {% endif %}
         </section>
       {% endfor %}
       {% for day_form in day_formset %}

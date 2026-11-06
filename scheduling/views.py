@@ -24,6 +24,7 @@ from scheduling.services import (
     accept_offer,
     create_offer,
     decline_offer,
+    delete_exam_day,
     get_invite_problem,
     release_slot,
     save_exam,
@@ -362,6 +363,19 @@ def exam_edit(request, pk: int | None = None):
                 messages.success(request, _('Exam saved'))
                 return redirect('exam_edit', pk=saved.pk)
 
+    existing_days = list(
+        ExamDay.objects.filter(exam=exam).prefetch_related(
+            Prefetch(
+                'slot_set',
+                queryset=Slot.objects.select_related('owner').order_by('start'),
+            )
+        )
+        if exam
+        else []
+    )
+    for day in existing_days:
+        day.has_owned_slots = any(slot.owner_id for slot in day.slot_set.all())  # pyright: ignore[reportAttributeAccessIssue]
+
     return render(
         request,
         'edit_exam.html',
@@ -370,15 +384,21 @@ def exam_edit(request, pk: int | None = None):
             'form': exam_form,
             'day_formset': day_formset,
             'duration_locked': duration_locked,
-            'existing_days': (
-                ExamDay.objects.filter(exam=exam).prefetch_related(
-                    Prefetch(
-                        'slot_set',
-                        queryset=Slot.objects.select_related('owner').order_by('start'),
-                    )
-                )
-                if exam
-                else []
-            ),
+            'existing_days': existing_days,
         },
     )
+
+
+@login_required
+@require_POST
+def examday_delete(request, pk: int):
+
+    examday = get_object_or_404(ExamDay, pk=pk, exam__owner=request.user)
+
+    try:
+        delete_exam_day(examday.pk, request.user)
+    except SchedulingError as e:
+        messages.error(request, str(e))
+    else:
+        messages.success(request, _('Day deleted'))
+    return redirect('exam_edit', pk=examday.exam_id)  # pyright: ignore[reportAttributeAccessIssue]
