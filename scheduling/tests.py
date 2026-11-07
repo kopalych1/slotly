@@ -48,6 +48,7 @@ from scheduling.services import (
     compute_slot_starts,
     create_offer,
     decline_offer,
+    delete_exam,
     delete_exam_day,
     release_slot,
     save_exam,
@@ -1646,3 +1647,125 @@ class ExamDayDeleteViewTests(SchedulingTestCase):
         self.assertNotContains(
             response, reverse('examday_delete', kwargs={'pk': self.examday.pk})
         )
+
+
+class DeleteExamTests(SchedulingTestCase):
+    def test_deletes_exam_with_everything_inside(self):
+        offer = create_offer(self.students[0], self.slots[0], self.slots[1])
+        invite = Invite.objects.create(exam=self.exam)
+
+        delete_exam(self.exam.pk, self.teacher)
+
+        self.assertFalse(Exam.objects.filter(pk=self.exam.pk).exists())
+        self.assertFalse(ExamDay.objects.filter(pk=self.examday.pk).exists())
+        self.assertFalse(Slot.objects.filter(exam_id=self.exam.pk).exists())
+        self.assertFalse(Enrollment.objects.filter(user=self.students[0]).exists())
+        self.assertFalse(Offer.objects.filter(pk=offer.pk).exists())
+        self.assertFalse(Invite.objects.filter(pk=invite.pk).exists())
+
+    def test_keeps_swap_history_and_users(self):
+        offer = create_offer(self.students[0], self.slots[0], self.slots[1])
+        log = accept_offer(offer.pk, self.students[1])
+
+        delete_exam(self.exam.pk, self.teacher)
+
+        log.refresh_from_db()
+        self.assertEqual(log.exam_name, 'Test exam')
+        self.assertIsNone(log.offer)
+        self.assertIsNone(log.sender_slot)
+        self.assertEqual(log.sender, self.students[0])
+        self.assertTrue(User.objects.filter(pk=self.students[0].pk).exists())
+
+    def test_does_not_touch_other_exams(self):
+        other = Exam.objects.create(
+            name='Other',
+            owner=self.teacher,
+            slots_change_deadline=now() + timedelta(days=7),
+        )
+
+        delete_exam(self.exam.pk, self.teacher)
+
+        self.assertTrue(Exam.objects.filter(pk=other.pk).exists())
+
+    def test_only_owner_can_delete(self):
+        other = User.objects.create_user(
+            username='other', password='pass', role=User.Role.TEACHER
+        )
+
+        for user in (other, self.students[0]):
+            with self.assertRaises(NotExamOwnerError):
+                delete_exam(self.exam.pk, user)
+
+        self.assertTrue(Exam.objects.filter(pk=self.exam.pk).exists())
+
+
+class ExamDeleteViewTests(SchedulingTestCase):
+    def setUp(self):
+        self.url = reverse('exam_delete', kwargs={'pk': self.exam.pk})
+        self.empty = Exam.objects.create(
+            name='Empty',
+            owner=self.teacher,
+            slots_change_deadline=now() + timedelta(days=7),
+        )
+        self.empty_url = reverse('exam_delete', kwargs={'pk': self.empty.pk})
+
+    def test_anonymous_is_redirected_to_login(self):
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Exam.objects.filter(pk=self.exam.pk).exists())
+
+    def test_student_and_other_teacher_get_404(self):
+        other = User.objects.create_user(
+            username='other', password='pass', role=User.Role.TEACHER
+        )
+
+        for user in (self.students[0], other):
+            self.client.force_login(user)
+            self.assertEqual(self.client.post(self.url).status_code, 404)
+
+        self.assertTrue(Exam.objects.filter(pk=self.exam.pk).exists())
+
+    def test_get_shows_consequences_and_deletes_nothing(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['stats']['days'], 1)
+        self.assertEqual(response.context['stats']['slots'], 9)
+        self.assertEqual(response.context['stats']['booked_slots'], 3)
+        self.assertTrue(response.context['needs_name'])
+        self.assertTrue(Exam.objects.filter(pk=self.exam.pk).exists())
+
+    def test_empty_exam_is_deleted_without_name(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.post(self.empty_url)
+
+        self.assertRedirects(response, reverse('home'), fetch_redirect_response=False)
+        self.assertFalse(Exam.objects.filter(pk=self.empty.pk).exists())
+
+    def test_booked_exam_needs_the_exact_name(self):
+        self.client.force_login(self.teacher)
+
+        for wrong in ('', 'test exam', 'Other'):
+            response = self.client.post(self.url, {'confirm_name': wrong})
+            self.assertEqual(response.status_code, 200)
+
+        self.assertTrue(Exam.objects.filter(pk=self.exam.pk).exists())
+
+    def test_booked_exam_is_deleted_with_the_right_name(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.post(self.url, {'confirm_name': ' Test exam '})
+
+        self.assertRedirects(response, reverse('home'), fetch_redirect_response=False)
+        self.assertFalse(Exam.objects.filter(pk=self.exam.pk).exists())
+
+    def test_editor_links_to_confirmation_page(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.get(reverse('exam_edit', kwargs={'pk': self.exam.pk}))
+
+        self.assertContains(response, self.url)

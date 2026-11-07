@@ -60,4 +60,5 @@ urlpatterns = [
     path(
         'days/<int:pk>/delete/', scheduling.views.examday_delete, name='examday_delete'
     ),
+    path('exams/<int:pk>/delete/', scheduling.views.exam_delete, name='exam_delete'),
 ]

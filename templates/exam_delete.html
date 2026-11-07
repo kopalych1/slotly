@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Delete exam" %} · Slotly{% endblock %}
+{% block content %}
+  <section class="auth-card auth-card--wide">
+    <h1>{% trans "Delete exam" %}</h1>
+    <p>
+      {% blocktrans with name=exam.name %}You are about to delete “{{ name }}”. This cannot be undone. The following will be deleted:{% endblocktrans %}
+    </p>
+    <ul class="impact">
+      <li><strong>{{ stats.days }}</strong> {% trans "exam days" %}</li>
+      <li><strong>{{ stats.slots }}</strong> {% trans "slots" %}, {% trans "of which booked" %}: <strong>{{ stats.booked_slots }}</strong></li>
+      <li><strong>{{ stats.students }}</strong> {% trans "enrolled students" %}</li>
+      <li><strong>{{ stats.offers }}</strong> {% trans "active swap offers" %}</li>
+      <li>{% trans "invitation links" %}</li>
+    </ul>
+    <p class="muted">{% trans "The swap history is kept." %}</p>
+    <form method="post">
+      {% csrf_token %}
+      {% if needs_name %}
+        <div class="field">
+          <label for="confirm_name">
+            {% blocktrans with name=exam.name %}Students have already booked slots. Type “{{ name }}” to confirm.{% endblocktrans %}
+          </label>
+          <input type="text"
+                 id="confirm_name"
+                 name="confirm_name"
+                 autocomplete="off"
+                 required>
+        </div>
+      {% endif %}
+      <div class="form-row">
+        <button class="btn btn--danger" type="submit">{% trans "Delete exam" %}</button>
+        <a class="btn btn--ghost" href="{% url 'exam_edit' exam.pk %}">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

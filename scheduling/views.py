@@ -3,7 +3,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
-from django.db.models import Max, Min, Prefetch, Q
+from django.db.models import Count, Max, Min, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.timezone import now
@@ -24,6 +24,7 @@ from scheduling.services import (
     accept_offer,
     create_offer,
     decline_offer,
+    delete_exam,
     delete_exam_day,
     get_invite_problem,
     release_slot,
@@ -402,3 +403,45 @@ def examday_delete(request, pk: int):
     else:
         messages.success(request, _('Day deleted'))
     return redirect('exam_edit', pk=examday.exam_id)  # pyright: ignore[reportAttributeAccessIssue]
+
+
+def exam_stats(exam: Exam) -> dict[str, int]:
+    slots = Slot.objects.filter(exam=exam).aggregate(
+        total=Count('pk'), booked=Count('pk', filter=Q(owner__isnull=False))
+    )
+    return {
+        'days': ExamDay.objects.filter(exam=exam).count(),
+        'slots': slots['total'],
+        'booked_slots': slots['booked'],
+        'students': Enrollment.objects.filter(exam=exam).count(),
+        'offers': Offer.objects.filter(
+            offered_slot__exam=exam,
+            status=Offer.Status.AWAITING,
+            expires_at__gt=now(),
+        ).count(),
+    }
+
+
+@login_required
+def exam_delete(request, pk: int):
+    exam = get_object_or_404(Exam, pk=pk, owner=request.user)
+    stats = exam_stats(exam)
+    needs_name = stats['booked_slots'] > 0
+
+    if request.method == 'POST':
+        if needs_name and request.POST.get('confirm_name', '').strip() != exam.name:
+            messages.error(request, _('The name does not match. Nothing was deleted.'))
+        else:
+            try:
+                delete_exam(exam.pk, request.user)
+            except SchedulingError as e:
+                messages.error(request, str(e))
+            else:
+                messages.success(request, _('Exam deleted'))
+                return redirect('home')
+
+    return render(
+        request,
+        'exam_delete.html',
+        {'exam': exam, 'stats': stats, 'needs_name': needs_name},
+    )

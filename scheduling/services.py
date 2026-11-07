@@ -405,3 +405,13 @@ def delete_exam_day(examday_id: int, user: User) -> None:
             raise DayHasOwnedSlotsError()
 
         examday.delete()
+
+
+def delete_exam(exam_id: int, user) -> None:
+    with transaction.atomic():
+        exam = Exam.objects.select_for_update(of=('self',)).get(pk=exam_id)
+
+        if exam.owner_id != user.pk:  # pyright: ignore[reportAttributeAccessIssue]
+            raise NotExamOwnerError()
+
+        exam.delete()

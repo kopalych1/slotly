@@ -113,6 +113,12 @@
       {% include "partials/day_draft.html" with day_form=day_formset.empty_form %}
     </template>
   </form>
+  {% if exam %}
+    <p class="danger-zone">
+      <a class="btn btn--danger-outline"
+         href="{% url 'exam_delete' exam.pk %}">{% trans "Delete exam" %}</a>
+    </p>
+  {% endif %}
 {% endblock %}
 {% block scripts %}
   <script src="{% static 'js/exam_edit.js' %}" defer></script>

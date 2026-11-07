@@ -729,3 +729,29 @@ a.btn {
 .day > .btn {
   margin-top: 0.75rem;
 }
+
+.auth-card--wide {
+  max-width: 34rem;
+}
+.impact {
+  margin: 0.75rem 0;
+  padding-left: 1.25rem;
+}
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.btn--danger {
+  background: var(--danger);
+  color: var(--bg);
+}
+.btn--danger:hover {
+  filter: brightness(1.08);
+}
+.danger-zone {
+  margin: 2rem 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
