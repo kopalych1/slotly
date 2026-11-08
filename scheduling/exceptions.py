@@ -148,3 +148,7 @@ class OverlappingDaysError(ExamError):
 
 class DayHasOwnedSlotsError(ExamError):
     message = _('Some slots of this day are already taken by students')
+
+
+class InvalidUsageLimitError(ExamError):
+    message = _('The usage limit must be a positive number')

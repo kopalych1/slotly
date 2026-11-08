@@ -13,6 +13,7 @@ from scheduling.exceptions import (
     DifferentExamError,
     DuplicateOfferError,
     InvalidDayRangeError,
+    InvalidUsageLimitError,
     InviteError,
     InviteExpiredError,
     InviteLimitReachedError,
@@ -415,3 +416,78 @@ def delete_exam(exam_id: int, user) -> None:
             raise NotExamOwnerError()
 
         exam.delete()
+
+
+def create_invite(
+    exam_id: int,
+    user: User,
+    usage_limit: int | None = None,
+    name: str | None = None,
+    email: str | None = None,
+    expires_at: datetime | None = None,
+) -> Invite:
+
+    if not user.is_teacher:
+        raise TeacherRequiredError()
+
+    if usage_limit is not None and usage_limit < 1:
+        raise InvalidUsageLimitError()
+
+    exam = Exam.objects.get(pk=exam_id)
+
+    if exam.owner_id != user.pk:  # pyright: ignore[reportAttributeAccessIssue]
+        raise NotExamOwnerError()
+
+    if now() >= exam.slots_change_deadline:
+        raise DeadlinePassedError()
+
+    return Invite.objects.create(
+        exam_id=exam_id,
+        name=name or '',
+        email=email or '',
+        usage_limit=usage_limit,
+        expires_at=expires_at if expires_at else exam.slots_change_deadline,
+    )
+
+
+def revoke_invite(invite_id: int, user: User) -> None:
+
+    if not user.is_teacher:
+        raise TeacherRequiredError()
+
+    invite = Invite.objects.select_related('exam').get(pk=invite_id)
+    if invite.exam.owner_id != user.pk:
+        raise NotExamOwnerError()
+    if not invite.is_revoked:
+        invite.is_revoked = True
+        invite.save(update_fields=['is_revoked'])
+
+
+def remove_student(exam_id: int, student_id: int, user: User) -> None:
+    exam = Exam.objects.get(pk=exam_id)
+
+    if not user.is_teacher:
+        raise TeacherRequiredError()
+
+    if exam.owner_id != user.pk:  # pyright: ignore[reportAttributeAccessIssue]
+        raise NotExamOwnerError()
+
+    with transaction.atomic():
+        try:
+            enrollment = Enrollment.objects.get(exam=exam, user_id=student_id)
+        except Enrollment.DoesNotExist:
+            raise NotEnrolledError()
+
+        slot = (
+            Slot.objects.select_for_update()
+            .filter(exam_id=exam.pk, owner_id=student_id)
+            .first()
+        )
+        if slot is not None:
+            slot.owner = None
+            slot.save(update_fields=['owner'])
+            Offer.objects.filter(
+                Q(wanted_slot=slot) | Q(offered_slot=slot), status=Offer.Status.AWAITING
+            ).update(status=Offer.Status.CANCELED)
+
+        enrollment.delete()

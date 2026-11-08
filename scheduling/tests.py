@@ -14,7 +14,9 @@ from scheduling.exceptions import (
     DeadlinePassedError,
     DifferentExamError,
     DuplicateOfferError,
+    ExamError,
     InvalidDayRangeError,
+    InvalidUsageLimitError,
     InviteExpiredError,
     InviteLimitReachedError,
     InviteNotFoundError,
@@ -46,11 +48,13 @@ from scheduling.services import (
     accept_offer,
     bulk_fill_slots,
     compute_slot_starts,
+    create_invite,
     create_offer,
     decline_offer,
     delete_exam,
     delete_exam_day,
     release_slot,
+    remove_student,
     save_exam,
     take_slot,
     withdraw_offer,
@@ -1769,3 +1773,176 @@ class ExamDeleteViewTests(SchedulingTestCase):
         response = self.client.get(reverse('exam_edit', kwargs={'pk': self.exam.pk}))
 
         self.assertContains(response, self.url)
+
+
+class CreateInviteTests(SchedulingTestCase):
+    def test_owner_creates_invite_that_expires_with_the_deadline(self):
+        invite = create_invite(self.exam.pk, self.teacher, 30)
+
+        self.assertEqual(invite.exam, self.exam)
+        self.assertEqual(invite.name, '')
+        self.assertEqual(invite.email, '')
+        self.assertEqual(invite.usage_limit, 30)
+        self.assertEqual(invite.usage_counter, 0)
+        self.assertFalse(invite.is_revoked)
+        self.assertEqual(invite.expires_at, self.exam.slots_change_deadline)
+
+    def test_keeps_name_email_and_explicit_expiry(self):
+        expires = now() + timedelta(days=1)
+
+        invite = create_invite(
+            self.exam.pk,
+            self.teacher,
+            1,
+            name='Anna',
+            email='a@example.com',
+            expires_at=expires,
+        )
+
+        self.assertEqual(invite.name, 'Anna')
+        self.assertEqual(invite.email, 'a@example.com')
+        self.assertEqual(invite.expires_at, expires)
+
+    def test_invalid_limit_is_rejected(self):
+        for limit in (0, -5):
+            with self.assertRaises(InvalidUsageLimitError):
+                create_invite(self.exam.pk, self.teacher, limit)
+
+        self.assertEqual(Invite.objects.count(), 0)
+
+    def test_raises_after_deadline(self):
+        Exam.objects.filter(pk=self.exam.pk).update(
+            slots_change_deadline=now() - timedelta(minutes=1)
+        )
+
+        with self.assertRaises(DeadlinePassedError):
+            create_invite(self.exam.pk, self.teacher, 30)
+
+    def test_student_cannot_create(self):
+        with self.assertRaises(TeacherRequiredError):
+            create_invite(self.exam.pk, self.students[0], 30)
+
+        self.assertEqual(Invite.objects.count(), 0)
+
+    def test_other_teacher_cannot_create_for_foreign_exam(self):
+        other = User.objects.create_user(
+            username='other', password='pass', role=User.Role.TEACHER
+        )
+
+        with self.assertRaises(NotExamOwnerError):
+            create_invite(self.exam.pk, other, 30)
+
+        self.assertEqual(Invite.objects.count(), 0)
+
+    def test_unknown_exam_raises_does_not_exist(self):
+        with self.assertRaises(Exam.DoesNotExist):
+            create_invite(999999, self.teacher, 30)
+
+
+class RemoveStudentTests(SchedulingTestCase):
+    def test_removes_enrollment_and_frees_the_slot(self):
+        s0, s1, _ = self.students
+
+        remove_student(self.exam.pk, s0.pk, self.teacher)
+
+        self.assertFalse(Enrollment.objects.filter(exam=self.exam, user=s0).exists())
+        self.assertIsNone(self.owner_of(self.slots[0]))
+        self.assertEqual(self.owner_of(self.slots[1]), s1)
+        self.assertTrue(User.objects.filter(pk=s0.pk).exists())
+
+    def test_student_without_a_slot_can_be_removed(self):
+        newbie = User.objects.create_user(
+            username='newbie', password='pass', role=User.Role.STUDENT
+        )
+        Enrollment.objects.create(exam=self.exam, user=newbie)
+
+        remove_student(self.exam.pk, newbie.pk, self.teacher)
+
+        self.assertFalse(Enrollment.objects.filter(user=newbie).exists())
+        self.assertEqual(
+            Slot.objects.filter(exam=self.exam, owner__isnull=False).count(), 3
+        )
+
+    def test_cancels_active_offers_around_the_slot_only(self):
+        s0, s1, _ = self.students
+        as_offered = create_offer(s0, self.slots[0], self.slots[1])
+        as_wanted = create_offer(s1, self.slots[1], self.slots[0])
+        unrelated = create_offer(s1, self.slots[1], self.slots[2])
+        finished = create_offer(s0, self.slots[0], self.slots[2])
+        Offer.objects.filter(pk=finished.pk).update(status=Offer.Status.EXPIRED)
+
+        remove_student(self.exam.pk, s0.pk, self.teacher)
+
+        for offer in (as_offered, as_wanted, unrelated, finished):
+            offer.refresh_from_db()
+        self.assertEqual(as_offered.status, Offer.Status.CANCELED)
+        self.assertEqual(as_wanted.status, Offer.Status.CANCELED)
+        self.assertEqual(unrelated.status, Offer.Status.AWAITING)
+        self.assertEqual(finished.status, Offer.Status.EXPIRED)
+
+    def test_works_after_the_deadline(self):
+        Exam.objects.filter(pk=self.exam.pk).update(
+            slots_change_deadline=now() - timedelta(minutes=1)
+        )
+
+        remove_student(self.exam.pk, self.students[0].pk, self.teacher)
+
+        self.assertIsNone(self.owner_of(self.slots[0]))
+
+    def test_removed_student_cannot_act_and_slot_is_free_for_others(self):
+        s0, s1, _ = self.students
+
+        remove_student(self.exam.pk, s0.pk, self.teacher)
+
+        with self.assertRaises(NotEnrolledError):
+            take_slot(self.slots[3].pk, s0)
+        take_slot(self.slots[0].pk, s1)
+        self.assertEqual(self.owner_of(self.slots[0]), s1)
+
+    def test_other_exams_of_the_student_are_untouched(self):
+        s0 = self.students[0]
+        other_exam = Exam.objects.create(
+            name='Other',
+            owner=self.teacher,
+            slots_change_deadline=now() + timedelta(days=7),
+        )
+        start = now() + timedelta(days=30)
+        day = ExamDay.objects.create(
+            exam=other_exam, start=start, end=start + timedelta(hours=1)
+        )
+        other_slot = bulk_fill_slots(day)[0]
+        Enrollment.objects.create(exam=other_exam, user=s0)
+        other_slot.owner = s0  # pyright: ignore[reportAttributeAccessIssue]
+        other_slot.save()
+
+        remove_student(self.exam.pk, s0.pk, self.teacher)
+
+        self.assertTrue(Enrollment.objects.filter(exam=other_exam, user=s0).exists())
+        self.assertEqual(self.owner_of(other_slot), s0)
+
+    def test_only_the_owner_can_remove(self):
+        other = User.objects.create_user(
+            username='other', password='pass', role=User.Role.TEACHER
+        )
+
+        # a student fails either the role or the ownership check, both are ExamError
+        for user, error in ((other, NotExamOwnerError), (self.students[1], ExamError)):
+            with self.assertRaises(error):
+                remove_student(self.exam.pk, self.students[0].pk, user)
+
+        self.assertTrue(
+            Enrollment.objects.filter(exam=self.exam, user=self.students[0]).exists()
+        )
+        self.assertEqual(self.owner_of(self.slots[0]), self.students[0])
+
+    def test_not_enrolled_user_raises(self):
+        outsider = User.objects.create_user(
+            username='outsider', password='pass', role=User.Role.STUDENT
+        )
+
+        with self.assertRaises(NotEnrolledError):
+            remove_student(self.exam.pk, outsider.pk, self.teacher)
+
+    def test_unknown_exam_raises_does_not_exist(self):
+        with self.assertRaises(Exam.DoesNotExist):
+            remove_student(999999, self.students[0].pk, self.teacher)
