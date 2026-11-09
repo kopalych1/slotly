@@ -27,7 +27,12 @@
       {% endif %}
     </p>
   {% endif %}
-  <div class="board">
+  <div class="board"
+       id="board"
+       hx-get="{% url 'exam_detail' exam.pk %}"
+       hx-trigger="every 5s [document.visibilityState === 'visible' && Date.now() < {{ exam.slots_change_deadline|date:'U' }}000 + 10000]"
+       hx-select="#board > *"
+       hx-swap="innerHTML">
     {% for examday in examdays %}
       <section class="day" aria-labelledby="day-{{ examday.pk }}">
         <h2 class="day__title" id="day-{{ examday.pk }}">{{ examday.start|date:"l, d M" }}</h2>
