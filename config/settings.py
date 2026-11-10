@@ -160,3 +160,6 @@ CSRF_TRUSTED_ORIGINS = split_config_string(os.getenv('CSRF_TRUSTED_ORIGINS', '')
 
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+
+
+SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000').rstrip('/')

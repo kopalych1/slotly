@@ -61,4 +61,19 @@ urlpatterns = [
         'days/<int:pk>/delete/', scheduling.views.examday_delete, name='examday_delete'
     ),
     path('exams/<int:pk>/delete/', scheduling.views.exam_delete, name='exam_delete'),
+    path(
+        'exams/<int:pk>/invites/create/',
+        scheduling.views.invite_create,
+        name='invite_create',
+    ),
+    path(
+        'invites/<int:pk>/revoke/',
+        scheduling.views.invite_revoke,
+        name='invite_revoke',
+    ),
+    path(
+        'exams/<int:pk>/students/<int:user_id>/remove/',
+        scheduling.views.student_remove,
+        name='student_remove',
+    ),
 ]

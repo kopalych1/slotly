@@ -3,6 +3,7 @@
 {% block title %}{% if exam %}{{ exam.name }}{% else %}{% trans "New exam" %}{% endif %} · Slotly{% endblock %}
 {% block content %}
   {% trans "Delete this day and all its free slots? Unsaved changes on this page will be lost." as delete_day_msg %}
+  {% trans "Remove this student? Their slot will be freed and their offers cancelled." as remove_student_msg %}
   <form method="post"
         class="exam-edit"
         autocomplete="off"
@@ -113,6 +114,81 @@
       {% include "partials/day_draft.html" with day_form=day_formset.empty_form %}
     </template>
   </form>
+  {% if exam %}
+    <div class="manage">
+      <section class="manage__section" id="invites">
+        <h2>{% trans "Invitations" %}</h2>
+        <form method="post"
+              action="{% url 'invite_create' exam.pk %}"
+              class="inline-form">
+          {% csrf_token %}
+          <div class="field">
+            <label for="usage_limit">{% trans "Max uses" %}</label>
+            <input type="number"
+                   id="usage_limit"
+                   name="usage_limit"
+                   value="30"
+                   min="1"
+                   required>
+          </div>
+          <button class="btn btn--primary" type="submit">{% trans "Create link" %}</button>
+        </form>
+        {% for item in invites %}
+          <article class="invite{% if item.problem %} invite--dead{% endif %}">
+            <div class="invite__link">
+              <input type="text"
+                     readonly
+                     value="{{ item.url }}"
+                     data-invite-url
+                     aria-label="{% trans 'Invitation link' %}">
+              <button type="button"
+                      class="btn btn--small btn--ghost"
+                      data-copy
+                      data-done="{% trans 'Copied' %}">{% trans "Copy" %}</button>
+            </div>
+            <p class="invite__meta muted">
+              {{ item.invite.usage_counter }}/{{ item.invite.usage_limit|default:"∞" }} {% trans "used" %}
+              {% if item.invite.expires_at %}· {% trans "until" %} {{ item.invite.expires_at|date:"d M, H:i" }}{% endif %}
+              {% if item.problem %}· <strong>{{ item.problem }}</strong>{% endif %}
+            </p>
+            {% if not item.problem %}
+              <form method="post" action="{% url 'invite_revoke' item.invite.pk %}">
+                {% csrf_token %}
+                <button class="btn btn--small btn--danger-outline"
+                        type="submit">{% trans "Revoke" %}</button>
+              </form>
+            {% endif %}
+          </article>
+        {% empty %}
+          <p class="muted">{% trans "No invitation links yet." %}</p>
+        {% endfor %}
+      </section>
+      <section class="manage__section" id="students">
+        <h2>{% trans "Students" %} <span class="badge">{{ students|length }}</span></h2>
+        {% for enrollment in students %}
+          <div class="student-row">
+            <div>
+              <strong>{{ enrollment.user.get_full_name|default:enrollment.user.username }}</strong>
+              <span class="muted">
+                {% if enrollment.slot %}{{ enrollment.slot.start|date:"d M, H:i" }}{% else %}{% trans "no slot yet" %}{% endif %}
+              </span>
+            </div>
+            <form method="post"
+                  action="{% url 'student_remove' exam.pk enrollment.user_id %}"
+                  onsubmit="return confirm('{{ remove_student_msg|escapejs }}')">
+              {% csrf_token %}
+              <button class="btn btn--small btn--danger-outline"
+                      type="submit">{% trans "Remove" %}</button>
+            </form>
+          </div>
+        {% empty %}
+          <p class="muted">{% trans "Nobody has joined yet. Share an invitation link." %}</p>
+        {% endfor %}
+      </section>
+    </div>
+  {% else %}
+    <p class="muted">{% trans "Save the exam first, then you can create invitation links." %}</p>
+  {% endif %}
   {% if exam %}
     <p class="danger-zone">
       <a class="btn btn--danger-outline"

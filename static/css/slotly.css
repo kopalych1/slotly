@@ -755,3 +755,83 @@ a.btn {
   padding-top: 1rem;
   border-top: 1px solid var(--border);
 }
+
+.manage {
+  display: grid;
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+.manage__section {
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.manage__section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+@media (min-width: 56rem) {
+  .manage {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.inline-form .field {
+  margin: 0;
+  width: 8rem;
+}
+
+.invite {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--border);
+}
+.invite__link {
+  display: flex;
+  gap: 0.5rem;
+}
+.invite__link input {
+  flex: 1;
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.invite--dead .invite__link input {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+.invite__meta {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.invite form {
+  margin: 0;
+}
+
+.student-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+}
+.student-row form {
+  margin: 0;
+}

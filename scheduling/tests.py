@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms import modelform_factory
 from django.test import SimpleTestCase, TestCase
@@ -1946,3 +1947,67 @@ class RemoveStudentTests(SchedulingTestCase):
     def test_unknown_exam_raises_does_not_exist(self):
         with self.assertRaises(Exam.DoesNotExist):
             remove_student(999999, self.students[0].pk, self.teacher)
+
+
+def test_editor_lists_only_own_invites_with_urls_and_problems(self):
+    live = Invite.objects.create(exam=self.exam, usage_limit=5)
+    dead = Invite.objects.create(exam=self.exam, is_revoked=True)
+    other_exam = Exam.objects.create(
+        name='Other',
+        owner=self.teacher,
+        slots_change_deadline=now() + timedelta(days=7),
+    )
+    foreign = Invite.objects.create(exam=other_exam)
+    self.client.force_login(self.teacher)
+
+    response = self.client.get(self.edit_url)
+
+    items = {item['invite'].pk: item for item in response.context['invites']}
+    self.assertEqual(set(items), {live.pk, dead.pk})
+    expected = settings.SITE_URL + reverse('join_invite', kwargs={'token': live.token})
+    self.assertEqual(items[live.pk]['url'], expected)
+    self.assertIsNone(items[live.pk]['problem'])
+    self.assertIsInstance(items[dead.pk]['problem'], InviteRevokedError)
+    self.assertNotContains(response, foreign.token)
+
+
+def test_editor_lists_students_with_their_slots(self):
+    newbie = User.objects.create_user(
+        username='newbie', password='pass', role=User.Role.STUDENT
+    )
+    Enrollment.objects.create(exam=self.exam, user=newbie)
+    self.client.force_login(self.teacher)
+
+    response = self.client.get(self.edit_url)
+
+    students = {e.user_id: e for e in response.context['students']}
+    self.assertEqual(len(students), 4)
+    self.assertEqual(students[self.students[0].pk].slot, self.slots[0])
+    self.assertIsNone(students[newbie.pk].slot)
+
+
+def test_new_exam_page_has_no_invites_or_students(self):
+    self.client.force_login(self.teacher)
+
+    response = self.client.get(self.new_url)
+
+    self.assertEqual(response.context['invites'], [])
+    self.assertEqual(response.context['students'], [])
+
+
+def test_revoke_button_only_for_live_invites(self):
+    live = Invite.objects.create(exam=self.exam, usage_limit=5)
+    revoked = Invite.objects.create(exam=self.exam, is_revoked=True)
+    expired = Invite.objects.create(
+        exam=self.exam, expires_at=now() - timedelta(minutes=1)
+    )
+    used_up = Invite.objects.create(exam=self.exam, usage_limit=1, usage_counter=1)
+    self.client.force_login(self.teacher)
+
+    response = self.client.get(self.edit_url)
+
+    self.assertContains(response, reverse('invite_revoke', kwargs={'pk': live.pk}))
+    for dead in (revoked, expired, used_up):
+        self.assertNotContains(
+            response, reverse('invite_revoke', kwargs={'pk': dead.pk})
+        )

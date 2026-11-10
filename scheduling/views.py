@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
@@ -5,6 +6,7 @@ from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Max, Min, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
@@ -22,12 +24,15 @@ from scheduling.services import (
     MAX_ACTIVE_OFFERS,
     accept_invite,
     accept_offer,
+    create_invite,
     create_offer,
     decline_offer,
     delete_exam,
     delete_exam_day,
     get_invite_problem,
     release_slot,
+    remove_student,
+    revoke_invite,
     save_exam,
     take_slot,
     withdraw_offer,
@@ -377,6 +382,30 @@ def exam_edit(request, pk: int | None = None):
     for day in existing_days:
         day.has_owned_slots = any(slot.owner_id for slot in day.slot_set.all())  # pyright: ignore[reportAttributeAccessIssue]
 
+    invites = []
+    students = []
+    if exam:
+        for invite in Invite.objects.filter(exam=exam).order_by('-pk'):
+            invites.append(
+                {
+                    'invite': invite,
+                    'url': settings.SITE_URL
+                    + reverse('join_invite', kwargs={'token': invite.token}),
+                    'problem': get_invite_problem(invite),
+                }
+            )
+
+        # one query for all slots, then each student gets their own slot
+        slot_by_owner = {
+            slot.owner_id: slot  # pyright: ignore[reportAttributeAccessIssue]
+            for slot in Slot.objects.filter(exam=exam, owner__isnull=False)
+        }
+        students = list(Enrollment.objects.filter(exam=exam).select_related('user'))
+        students.sort(key=lambda e: (e.user.get_full_name() or e.user.username).lower())
+        for enrollment in students:
+            enrollment.slot = slot_by_owner.get(enrollment.user_id)  # pyright: ignore[reportAttributeAccessIssue]
+    invites.sort(key=lambda item: item['problem'] is not None)
+
     return render(
         request,
         'edit_exam.html',
@@ -386,6 +415,8 @@ def exam_edit(request, pk: int | None = None):
             'day_formset': day_formset,
             'duration_locked': duration_locked,
             'existing_days': existing_days,
+            'invites': invites,
+            'students': students,
         },
     )
 
@@ -445,3 +476,59 @@ def exam_delete(request, pk: int):
         'exam_delete.html',
         {'exam': exam, 'stats': stats, 'needs_name': needs_name},
     )
+
+
+@login_required
+@require_POST
+def invite_create(request, pk: int):
+
+    exam = get_object_or_404(Exam, owner=request.user, pk=pk)
+
+    try:
+        usage_limit = int(request.POST.get('usage_limit', ''))
+    except ValueError:
+        messages.error(request, _('The usage limit must be a positive number'))
+        return redirect('exam_edit', pk=exam.pk)
+
+    try:
+        create_invite(exam.pk, request.user, usage_limit)
+    except SchedulingError as e:
+        messages.error(request, str(e))
+    else:
+        messages.success(request, _('Invite created'))
+
+    return redirect('exam_edit', pk=exam.pk)
+
+
+@login_required
+@require_POST
+def invite_revoke(request, pk: int):
+
+    invite = get_object_or_404(
+        Invite.objects.select_related('exam'), exam__owner=request.user, pk=pk
+    )
+
+    try:
+        revoke_invite(invite.pk, request.user)
+    except SchedulingError as e:
+        messages.error(request, str(e))
+    else:
+        messages.success(request, _('Invite revoked'))
+
+    return redirect('exam_edit', pk=invite.exam_id)  # pyright: ignore[reportAttributeAccessIssue]
+
+
+@login_required
+@require_POST
+def student_remove(request, pk: int, user_id: int):
+
+    exam = get_object_or_404(Exam, owner=request.user, pk=pk)
+
+    try:
+        remove_student(exam.pk, user_id, request.user)
+    except SchedulingError as e:
+        messages.error(request, str(e))
+    else:
+        messages.success(request, _('Student removed'))
+
+    return redirect('exam_edit', pk=exam.pk)
