@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.messages import get_messages
 from django.core.exceptions import ValidationError
 from django.forms import modelform_factory
+from django.template import Context, Template
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils.timezone import localdate, localtime, now
@@ -2232,3 +2233,42 @@ class StudentRemoveViewTests(SchedulingTestCase):
         self.client.force_login(self.teacher)
 
         self.assertEqual(self.client.get(self.url).status_code, 405)
+
+
+class QrCodeTests(SchedulingTestCase):
+    def test_tag_renders_inline_svg_for_a_url(self):
+        template = Template('{% load scheduling_extras %}{% qr_svg url %}')
+
+        html = template.render(Context({'url': 'https://slotly.example/join/abc/'}))
+
+        self.assertIn('<svg', html)
+        self.assertNotIn('<script', html)
+
+    def test_different_links_give_different_codes(self):
+        template = Template('{% load scheduling_extras %}{% qr_svg url %}')
+
+        first = template.render(Context({'url': 'https://slotly.example/join/a/'}))
+        second = template.render(Context({'url': 'https://slotly.example/join/b/'}))
+
+        self.assertNotEqual(first, second)
+
+    def test_editor_shows_qr_only_for_live_invites(self):
+        live = Invite.objects.create(exam=self.exam, usage_limit=5)
+        dead = Invite.objects.create(exam=self.exam, is_revoked=True)
+        self.client.force_login(self.teacher)
+
+        response = self.client.get(reverse('exam_edit', kwargs={'pk': self.exam.pk}))
+
+        self.assertContains(response, f'id="qr-{live.pk}"')
+        self.assertNotContains(response, f'id="qr-{dead.pk}"')
+
+
+def test_editor_shows_qr_button_only_for_live_invites(self):
+    live = Invite.objects.create(exam=self.exam, usage_limit=5)
+    dead = Invite.objects.create(exam=self.exam, is_revoked=True)
+    self.client.force_login(self.teacher)
+
+    response = self.client.get(reverse('exam_edit', kwargs={'pk': self.exam.pk}))
+
+    self.assertContains(response, f'data-qr-open="qr-{live.pk}"')
+    self.assertNotContains(response, f'data-qr-open="qr-{dead.pk}"')

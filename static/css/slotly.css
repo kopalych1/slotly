@@ -835,3 +835,63 @@ a.btn {
 .student-row form {
   margin: 0;
 }
+
+.invite__actions form {
+  margin: 0;
+}
+
+.qr-dialog {
+  width: min(90vw, 32rem);
+  padding: 1.5rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: #fff; /* white in both themes: the quiet zone matters for scanners */
+  color: #000;
+  text-align: center;
+}
+.qr-dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+
+.qr-dialog__text {
+  margin: 0 0 1rem;
+  font-weight: 600;
+}
+
+.qr-dialog {
+  width: min(90vw, 28rem);
+  padding: 1.5rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: #fff; /* white in both themes: the quiet zone matters for scanners */
+  color: #000;
+  text-align: center;
+}
+.qr-dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+.qr-dialog__text {
+  margin: 0 0 1rem;
+  font-weight: 600;
+}
+
+/* The wrapper has the size, the SVG just fills it, whatever attributes it carries */
+.qr-box {
+  width: min(78vw, 22rem);
+  aspect-ratio: 1;
+  margin: 0 auto 1rem;
+}
+.qr-box svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.btn--icon {
+  width: 2.5rem;
+  padding: 0;
+  flex-shrink: 0;
+}
+.invite__link .btn {
+  min-height: 2.5rem;
+}

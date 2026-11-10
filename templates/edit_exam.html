@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load scheduling_extras %}
 {% load i18n static %}
 {% block title %}{% if exam %}{{ exam.name }}{% else %}{% trans "New exam" %}{% endif %} · Slotly{% endblock %}
 {% block content %}
@@ -141,10 +142,35 @@
                      value="{{ item.url }}"
                      data-invite-url
                      aria-label="{% trans 'Invitation link' %}">
-              <button type="button"
-                      class="btn btn--small btn--ghost"
-                      data-copy
-                      data-done="{% trans 'Copied' %}">{% trans "Copy" %}</button>
+              {% if not item.problem %}
+                <button type="button"
+                        class="btn btn--small btn--ghost"
+                        data-copy
+                        data-done="{% trans 'Copied' %}">{% trans "Copy" %}</button>
+              {% endif %}
+              {% if not item.problem %}
+                <button type="button"
+                        class="btn btn--small btn--ghost btn--icon"
+                        data-qr-open="qr-{{ item.invite.pk }}"
+                        aria-label="{% trans 'Show QR code' %}"
+                        title="{% trans 'Show QR code' %}">
+                  <svg width="20"
+                       height="20"
+                       viewBox="0 0 24 24"
+                       fill="none"
+                       stroke="currentColor"
+                       stroke-width="2"
+                       stroke-linejoin="round"
+                       aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="3" height="3" fill="currentColor" stroke="none" />
+                    <rect x="18" y="18" width="3" height="3" fill="currentColor" stroke="none" />
+                    <rect x="18" y="14" width="3" height="2" fill="currentColor" stroke="none" />
+                  </svg>
+                </button>
+              {% endif %}
             </div>
             <p class="invite__meta muted">
               {{ item.invite.usage_counter }}/{{ item.invite.usage_limit|default:"∞" }} {% trans "used" %}
@@ -157,6 +183,16 @@
                 <button class="btn btn--small btn--danger-outline"
                         type="submit">{% trans "Revoke" %}</button>
               </form>
+              <dialog class="qr-dialog"
+                      id="qr-{{ item.invite.pk }}"
+                      aria-label="{% trans 'Invitation QR code' %}">
+                {% trans "Invitation QR code" as qr_title %}
+                <div class="qr-box">{% qr_svg item.url qr_title %}</div>
+                <p class="qr-dialog__text">{{ exam.name }}</p>
+                <button type="button"
+                        class="btn btn--primary"
+                        data-qr-close>{% trans "Close" %}</button>
+              </dialog>
             {% endif %}
           </article>
         {% empty %}

@@ -141,3 +141,20 @@
     }
   });
 })();
+
+(() => {
+  document.addEventListener('click', (event) => {
+    const open = event.target.closest('[data-qr-open]');
+    if (open) {
+      document.getElementById(open.dataset.qrOpen)?.showModal();
+      return;
+    }
+    const close = event.target.closest('[data-qr-close]');
+    if (close) {
+      close.closest('dialog').close();
+      return;
+    }
+    // A click on the backdrop closes the dialog
+    if (event.target instanceof HTMLDialogElement) event.target.close();
+  });
+})();
