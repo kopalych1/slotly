@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from django.conf import settings
+from django.contrib.messages import get_messages
 from django.core.exceptions import ValidationError
 from django.forms import modelform_factory
 from django.test import SimpleTestCase, TestCase
@@ -2011,3 +2012,223 @@ def test_revoke_button_only_for_live_invites(self):
         self.assertNotContains(
             response, reverse('invite_revoke', kwargs={'pk': dead.pk})
         )
+
+
+def message_levels(response):
+    return [m.level_tag for m in get_messages(response.wsgi_request)]
+
+
+class InviteCreateViewTests(SchedulingTestCase):
+    def setUp(self):
+        self.url = reverse('invite_create', kwargs={'pk': self.exam.pk})
+        self.edit_url = reverse('exam_edit', kwargs={'pk': self.exam.pk})
+        self.other = User.objects.create_user(
+            username='other', password='pass', role=User.Role.TEACHER
+        )
+
+    def test_owner_creates_invite_and_returns_to_editor(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.post(self.url, {'usage_limit': '30'})
+
+        self.assertRedirects(response, self.edit_url, fetch_redirect_response=False)
+        invite = Invite.objects.get(exam=self.exam)
+        self.assertEqual(invite.usage_limit, 30)
+        self.assertEqual(message_levels(response), ['success'])
+
+    def test_invalid_limit_creates_nothing(self):
+        for bad in ('', 'abc', '0', '-3'):
+            with self.subTest(value=bad):
+                # Messages stay in the cookie until a page renders them, so start clean
+                self.client.cookies.clear()
+                self.client.force_login(self.teacher)
+
+                response = self.client.post(self.url, {'usage_limit': bad})
+
+                self.assertRedirects(
+                    response, self.edit_url, fetch_redirect_response=False
+                )
+                self.assertEqual(message_levels(response), ['error'])
+
+        self.assertEqual(Invite.objects.count(), 0)
+
+    def test_after_deadline_creates_nothing(self):
+        Exam.objects.filter(pk=self.exam.pk).update(
+            slots_change_deadline=now() - timedelta(minutes=1)
+        )
+        self.client.force_login(self.teacher)
+
+        response = self.client.post(self.url, {'usage_limit': '30'})
+
+        self.assertEqual(message_levels(response), ['error'])
+        self.assertEqual(Invite.objects.count(), 0)
+
+    def test_students_and_other_teachers_get_404(self):
+        for user in (self.students[0], self.other):
+            self.client.force_login(user)
+            self.assertEqual(
+                self.client.post(self.url, {'usage_limit': '30'}).status_code, 404
+            )
+
+        self.assertEqual(Invite.objects.count(), 0)
+
+    def test_unknown_exam_gets_404(self):
+        self.client.force_login(self.teacher)
+        url = reverse('invite_create', kwargs={'pk': 999999})
+
+        self.assertEqual(self.client.post(url, {'usage_limit': '30'}).status_code, 404)
+
+    def test_anonymous_is_redirected_to_login(self):
+        response = self.client.post(self.url, {'usage_limit': '30'})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('login'), response.url)  # pyright: ignore[reportAttributeAccessIssue]
+        self.assertEqual(Invite.objects.count(), 0)
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.teacher)
+
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+
+class InviteRevokeViewTests(SchedulingTestCase):
+    def setUp(self):
+        self.invite = Invite.objects.create(exam=self.exam, usage_limit=5)
+        self.url = reverse('invite_revoke', kwargs={'pk': self.invite.pk})
+        self.edit_url = reverse('exam_edit', kwargs={'pk': self.exam.pk})
+        self.other = User.objects.create_user(
+            username='other', password='pass', role=User.Role.TEACHER
+        )
+
+    def test_owner_revokes_and_returns_to_editor(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, self.edit_url, fetch_redirect_response=False)
+        self.invite.refresh_from_db()
+        self.assertTrue(self.invite.is_revoked)
+        self.assertEqual(message_levels(response), ['success'])
+
+    def test_revoking_twice_is_fine(self):
+        self.client.force_login(self.teacher)
+        self.client.post(self.url)
+
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, self.edit_url, fetch_redirect_response=False)
+        self.invite.refresh_from_db()
+        self.assertTrue(self.invite.is_revoked)
+
+    def test_students_and_other_teachers_get_404_and_link_stays_live(self):
+        for user in (self.students[0], self.other):
+            self.client.force_login(user)
+            self.assertEqual(self.client.post(self.url).status_code, 404)
+
+        self.invite.refresh_from_db()
+        self.assertFalse(self.invite.is_revoked)
+
+    def test_anonymous_is_redirected_to_login(self):
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('login'), response.url)  # pyright: ignore[reportAttributeAccessIssue]
+        self.invite.refresh_from_db()
+        self.assertFalse(self.invite.is_revoked)
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.teacher)
+
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_new_visitor_sees_that_the_link_is_revoked(self):
+        self.client.force_login(self.teacher)
+        self.client.post(self.url)
+        self.client.logout()
+
+        response = self.client.get(
+            reverse('join_invite', kwargs={'token': self.invite.token})
+        )
+
+        self.assertEqual(response.context['problem'], str(InviteRevokedError()))
+
+
+class StudentRemoveViewTests(SchedulingTestCase):
+    def setUp(self):
+        self.student = self.students[0]
+        self.url = reverse(
+            'student_remove', kwargs={'pk': self.exam.pk, 'user_id': self.student.pk}
+        )
+        self.edit_url = reverse('exam_edit', kwargs={'pk': self.exam.pk})
+        self.other = User.objects.create_user(
+            username='other', password='pass', role=User.Role.TEACHER
+        )
+
+    def test_owner_removes_student_and_frees_the_slot(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, self.edit_url, fetch_redirect_response=False)
+        self.assertFalse(
+            Enrollment.objects.filter(exam=self.exam, user=self.student).exists()
+        )
+        self.assertIsNone(self.owner_of(self.slots[0]))
+        self.assertEqual(message_levels(response), ['success'])
+
+    def test_editor_no_longer_lists_the_removed_student(self):
+        self.client.force_login(self.teacher)
+        self.client.post(self.url)
+
+        response = self.client.get(self.edit_url)
+
+        listed = {e.user_id for e in response.context['students']}
+        self.assertNotIn(self.student.pk, listed)
+        self.assertEqual(len(listed), 2)
+
+    def test_students_and_other_teachers_get_404_and_nothing_changes(self):
+        for user in (self.students[1], self.other):
+            self.client.force_login(user)
+            self.assertEqual(self.client.post(self.url).status_code, 404)
+
+        self.assertTrue(
+            Enrollment.objects.filter(exam=self.exam, user=self.student).exists()
+        )
+        self.assertEqual(self.owner_of(self.slots[0]), self.student)
+
+    def test_user_who_is_not_enrolled_gets_a_message_not_a_crash(self):
+        outsider = User.objects.create_user(
+            username='outsider', password='pass', role=User.Role.STUDENT
+        )
+        url = reverse(
+            'student_remove', kwargs={'pk': self.exam.pk, 'user_id': outsider.pk}
+        )
+        self.client.force_login(self.teacher)
+
+        response = self.client.post(url)
+
+        self.assertRedirects(response, self.edit_url, fetch_redirect_response=False)
+        self.assertEqual(message_levels(response), ['error'])
+        self.assertEqual(Enrollment.objects.filter(exam=self.exam).count(), 3)
+
+    def test_unknown_user_id_gets_a_message_not_a_crash(self):
+        url = reverse('student_remove', kwargs={'pk': self.exam.pk, 'user_id': 999999})
+        self.client.force_login(self.teacher)
+
+        response = self.client.post(url)
+
+        self.assertEqual(message_levels(response), ['error'])
+
+    def test_anonymous_is_redirected_to_login(self):
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('login'), response.url)  # pyright: ignore[reportAttributeAccessIssue]
+        self.assertTrue(
+            Enrollment.objects.filter(exam=self.exam, user=self.student).exists()
+        )
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.teacher)
+
+        self.assertEqual(self.client.get(self.url).status_code, 405)
