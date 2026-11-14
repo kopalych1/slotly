@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 01:51+0100\n"
+"POT-Creation-Date: 2026-11-14 16:14+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,563 +20,851 @@ msgstr ""
 
 #: accounts/models.py:8
 msgid "Teacher"
-msgstr ""
+msgstr "Enseignant"
 
 #: accounts/models.py:9
 msgid "Student"
-msgstr ""
+msgstr "Étudiant"
 
 #: scheduling/exceptions.py:7
 msgid "Something went wrong"
-msgstr ""
+msgstr "Une erreur s’est produite"
 
 #: scheduling/exceptions.py:14
 msgid "The user is not enrolled for this exam"
-msgstr ""
+msgstr "L’utilisateur n’est pas inscrit à cet examen"
 
 #: scheduling/exceptions.py:18
 msgid "Slots cannot be generated for this day"
-msgstr ""
+msgstr "Impossible de générer des créneaux pour cette journée"
 
-#: scheduling/exceptions.py:22 scheduling/models.py:61
+#: scheduling/exceptions.py:22 scheduling/models.py:71
 msgid "Exam day must end after it starts"
-msgstr ""
+msgstr "La journée d’examen doit se terminer après son début"
 
-#: scheduling/exceptions.py:26 scheduling/models.py:63
+#: scheduling/exceptions.py:26 scheduling/models.py:73
 msgid "Exam day is shorter than a single slot"
-msgstr ""
+msgstr "La journée d’examen est plus courte qu’un seul créneau"
 
 #: scheduling/exceptions.py:30
 msgid "Slots already exist for this day"
-msgstr ""
+msgstr "Des créneaux existent déjà pour cette journée"
 
 #: scheduling/exceptions.py:34
 msgid "Offer cannot be created"
-msgstr ""
+msgstr "Impossible de créer l’offre"
 
 #: scheduling/exceptions.py:38
 msgid "You do not own this slot"
-msgstr ""
+msgstr "Ce créneau ne t’appartient pas"
 
 #: scheduling/exceptions.py:42
 msgid "You cannot swap a slot with itself"
-msgstr ""
+msgstr "Tu ne peux pas échanger un créneau avec lui-même"
 
 #: scheduling/exceptions.py:46
 msgid "The wanted slot is free, so you can just take it"
-msgstr ""
+msgstr "Le créneau souhaité est libre, tu peux simplement le prendre"
 
 #: scheduling/exceptions.py:50
 msgid "Slots belong to different exams"
-msgstr ""
+msgstr "Les créneaux appartiennent à des examens différents"
 
 #: scheduling/exceptions.py:54
 msgid "The deadline for changing slots has passed"
-msgstr ""
+msgstr "La date limite pour modifier les créneaux est dépassée"
 
 #: scheduling/exceptions.py:58
 msgid "You already have an active offer for this pair of slots"
-msgstr ""
+msgstr "Tu as déjà une offre active pour cette paire de créneaux"
 
 #: scheduling/exceptions.py:62
 msgid "You have reached the limit for offers"
-msgstr ""
+msgstr "Tu as atteint la limite d’offres"
 
 #: scheduling/exceptions.py:66
 msgid "Offer cannot be accepted"
-msgstr ""
+msgstr "Impossible d’accepter l’offre"
 
 #: scheduling/exceptions.py:70
 msgid "This offer is no longer active"
-msgstr ""
+msgstr "Cette offre n’est plus active"
 
 #: scheduling/exceptions.py:74
 msgid "This offer has expired"
-msgstr ""
+msgstr "Cette offre a expiré"
 
 #: scheduling/exceptions.py:78
 msgid "The offering student no longer holds that slot"
-msgstr ""
+msgstr "L’étudiant à l’origine de l’offre n’a plus ce créneau"
 
 #: scheduling/exceptions.py:82
 msgid "You do not hold the slot this offer is for"
-msgstr ""
+msgstr "Tu ne possèdes pas le créneau concerné par cette offre"
 
 #: scheduling/exceptions.py:86
 msgid "You are not the author of this offer"
-msgstr ""
+msgstr "Tu n’es pas l’auteur de cette offre"
 
 #: scheduling/exceptions.py:90
 msgid "This action cannot be performed on the slot"
-msgstr ""
+msgstr "Cette action ne peut pas être effectuée sur ce créneau"
 
 #: scheduling/exceptions.py:94
 msgid "This slot is already taken"
-msgstr ""
+msgstr "Ce créneau est déjà pris"
 
 #: scheduling/exceptions.py:98
 msgid "You already hold this slot"
-msgstr ""
+msgstr "Tu possèdes déjà ce créneau"
 
 #: scheduling/exceptions.py:102
 msgid "Your slot has changed, please refresh the page and try again"
-msgstr ""
+msgstr "Ton créneau a changé. Actualise la page et réessaie"
 
 #: scheduling/exceptions.py:106
 msgid "This invitation cannot be used"
-msgstr ""
+msgstr "Cette invitation ne peut pas être utilisée"
 
 #: scheduling/exceptions.py:110
 msgid "This invitation link is not valid"
-msgstr ""
+msgstr "Ce lien d’invitation n’est pas valide"
 
 #: scheduling/exceptions.py:114
 msgid "This invitation has been revoked"
-msgstr ""
+msgstr "Cette invitation a été révoquée"
 
 #: scheduling/exceptions.py:118
 msgid "This invitation has expired"
-msgstr ""
+msgstr "Cette invitation a expiré"
 
 #: scheduling/exceptions.py:122
 msgid "This invitation has no uses left"
-msgstr ""
+msgstr "Cette invitation a atteint sa limite d’utilisation"
 
 #: scheduling/exceptions.py:126
 msgid "Teachers cannot join an exam as students"
 msgstr ""
+"Les enseignants ne peuvent pas participer à un examen en tant qu’étudiants"
 
 #: scheduling/exceptions.py:130
 msgid "The exam cannot be saved"
-msgstr ""
+msgstr "Impossible d’enregistrer l’examen"
 
 #: scheduling/exceptions.py:134
 msgid "Only teachers can manage exams"
-msgstr ""
+msgstr "Seuls les enseignants peuvent gérer les examens"
 
 #: scheduling/exceptions.py:138
 msgid "You are not the owner of this exam"
-msgstr ""
+msgstr "Tu n’es pas le propriétaire de cet examen"
 
 #: scheduling/exceptions.py:142
 msgid "Slot duration cannot be changed once slots exist"
 msgstr ""
+"La durée des créneaux ne peut plus être modifiée une fois les créneaux créés"
 
 #: scheduling/exceptions.py:146
 msgid "Exam days must not overlap"
-msgstr ""
+msgstr "Les journées d’examen ne doivent pas se chevaucher"
 
-#: scheduling/models.py:21 scheduling/models.py:208
+#: scheduling/exceptions.py:150
+msgid "Some slots of this day are already taken by students"
+msgstr "Certains créneaux de cette journée sont déjà pris par des étudiants"
+
+#: scheduling/exceptions.py:154 scheduling/views.py:490
+msgid "The usage limit must be a positive number"
+msgstr "La limite d’utilisation doit être un nombre positif"
+
+#: scheduling/forms.py:17
+msgid "Name"
+msgstr "Nom"
+
+#: scheduling/forms.py:18
+msgid "Slot duration"
+msgstr "Durée du créneau"
+
+#: scheduling/forms.py:19
+msgid "Swap deadline"
+msgstr "Date limite d’échange"
+
+#: scheduling/forms.py:31
+msgid "Date"
+msgstr "Date"
+
+#: scheduling/forms.py:35
+msgid "From"
+msgstr "De"
+
+#: scheduling/forms.py:47
+msgid "To"
+msgstr "À"
+
+#: scheduling/forms.py:68 templates/edit_exam.html:72
+msgid "The day must end after it starts"
+msgstr "La journée doit se terminer après son début"
+
+#: scheduling/models.py:23 scheduling/models.py:232
 msgid "Exam name"
-msgstr ""
+msgstr "Nom de l’examen"
 
-#: scheduling/models.py:23 scheduling/models.py:83
+#: scheduling/models.py:26 scheduling/models.py:93
 msgid "Owner"
-msgstr ""
-
-#: scheduling/models.py:26
-msgid "Slot time duration"
-msgstr ""
-
-#: scheduling/models.py:27
-msgid "time in minutes"
-msgstr ""
+msgstr "Propriétaire"
 
 #: scheduling/models.py:31
+msgid "Slot time duration"
+msgstr "Durée du créneau"
+
+#: scheduling/models.py:32
+msgid "time in minutes"
+msgstr "durée en minutes"
+
+#: scheduling/models.py:36
 msgid "Slots change deadline"
-msgstr ""
+msgstr "Date limite de modification des créneaux"
 
-#: scheduling/models.py:34 scheduling/models.py:46 scheduling/models.py:75
-#: scheduling/models.py:223 scheduling/models.py:247
+#: scheduling/models.py:39 scheduling/models.py:56 scheduling/models.py:85
+#: scheduling/models.py:247 scheduling/models.py:281
 msgid "Exam"
-msgstr ""
+msgstr "Examen"
 
-#: scheduling/models.py:35 templates/base.html:17 templates/home.html:3
+#: scheduling/models.py:40 templates/base.html:19 templates/home.html:3
 #: templates/home.html:5
 msgid "Exams"
-msgstr ""
+msgstr "Examens"
 
-#: scheduling/models.py:48
+#: scheduling/models.py:45
+msgid "Exam owner must be a teacher"
+msgstr "Le propriétaire de l’examen doit être un enseignant"
+
+#: scheduling/models.py:58
 msgid "Exam day start datetime"
-msgstr ""
+msgstr "Date et heure de début de la journée d’examen"
 
-#: scheduling/models.py:49
+#: scheduling/models.py:59
 msgid "Exam day end datetime"
-msgstr ""
+msgstr "Date et heure de fin de la journée d’examen"
 
-#: scheduling/models.py:52
+#: scheduling/models.py:62
 msgid "ExamDay"
-msgstr ""
+msgstr "Journée d’examen"
 
-#: scheduling/models.py:53
+#: scheduling/models.py:63
 msgid "ExamDays"
-msgstr ""
+msgstr "Journées d’examen"
 
-#: scheduling/models.py:78
+#: scheduling/models.py:88
 msgid "Exam day"
-msgstr ""
-
-#: scheduling/models.py:80
-msgid "Slot start time"
-msgstr ""
+msgstr "Journée d’examen"
 
 #: scheduling/models.py:90
+msgid "Slot start time"
+msgstr "Heure de début du créneau"
+
+#: scheduling/models.py:101
 msgid "Slot"
-msgstr ""
+msgstr "Créneau"
 
-#: scheduling/models.py:91
+#: scheduling/models.py:102 templates/edit_exam.html:70
 msgid "Slots"
-msgstr ""
-
-#: scheduling/models.py:118
-msgid "Awaiting"
-msgstr ""
+msgstr "Créneaux"
 
 #: scheduling/models.py:119
+msgid "Slot owner must be a student"
+msgstr "Le propriétaire du créneau doit être un étudiant"
+
+#: scheduling/models.py:134
+msgid "Awaiting"
+msgstr "En attente"
+
+#: scheduling/models.py:135
 msgid "Accepted"
-msgstr ""
+msgstr "Acceptée"
 
-#: scheduling/models.py:120
+#: scheduling/models.py:136
 msgid "Canceled"
-msgstr ""
+msgstr "Annulée"
 
-#: scheduling/models.py:121 templates/exam_detail.html:116
+#: scheduling/models.py:137 templates/exam_detail.html:126
 msgid "Expired"
-msgstr ""
+msgstr "Expirée"
 
-#: scheduling/models.py:122
+#: scheduling/models.py:138
 msgid "Declined"
-msgstr ""
+msgstr "Refusée"
 
-#: scheduling/models.py:123
+#: scheduling/models.py:139
 msgid "Withdrawn"
-msgstr ""
+msgstr "Retirée"
 
-#: scheduling/models.py:126
+#: scheduling/models.py:143
 msgid "Offeror"
-msgstr ""
+msgstr "Auteur de l’offre"
 
-#: scheduling/models.py:131
+#: scheduling/models.py:150
 msgid "Offered slot"
-msgstr ""
+msgstr "Créneau proposé"
 
-#: scheduling/models.py:137
+#: scheduling/models.py:156
 msgid "Wanted slot"
-msgstr ""
+msgstr "Créneau souhaité"
 
-#: scheduling/models.py:141
+#: scheduling/models.py:160
 msgid "Status"
-msgstr ""
+msgstr "Statut"
 
-#: scheduling/models.py:143 scheduling/models.py:228
+#: scheduling/models.py:162 scheduling/models.py:255
 msgid "Created at"
-msgstr ""
+msgstr "Créée le"
 
-#: scheduling/models.py:144 scheduling/models.py:276
+#: scheduling/models.py:163 scheduling/models.py:310
 msgid "Expires at"
-msgstr ""
+msgstr "Expire le"
 
-#: scheduling/models.py:147 scheduling/models.py:172
+#: scheduling/models.py:166 scheduling/models.py:196
 msgid "Offer"
-msgstr ""
+msgstr "Offre"
 
-#: scheduling/models.py:148
+#: scheduling/models.py:167
 msgid "Offers"
-msgstr ""
+msgstr "Offres"
 
-#: scheduling/models.py:176
+#: scheduling/models.py:184
+msgid "Offeror must be a student"
+msgstr "L’auteur de l’offre doit être un étudiant"
+
+#: scheduling/models.py:200
 msgid "Sender name"
-msgstr ""
-
-#: scheduling/models.py:177
-msgid "Receiver name"
-msgstr ""
-
-#: scheduling/models.py:180
-msgid "Sender"
-msgstr ""
-
-#: scheduling/models.py:187
-msgid "Receiver"
-msgstr ""
-
-#: scheduling/models.py:194
-msgid "Sender slot"
-msgstr ""
+msgstr "Nom de l’expéditeur"
 
 #: scheduling/models.py:201
+msgid "Receiver name"
+msgstr "Nom du destinataire"
+
+#: scheduling/models.py:204
+msgid "Sender"
+msgstr "Expéditeur"
+
+#: scheduling/models.py:211
+msgid "Receiver"
+msgstr "Destinataire"
+
+#: scheduling/models.py:218
+msgid "Sender slot"
+msgstr "Créneau de l’expéditeur"
+
+#: scheduling/models.py:225
 msgid "Receiver slot"
-msgstr ""
+msgstr "Créneau du destinataire"
 
-#: scheduling/models.py:206
+#: scheduling/models.py:230
 msgid "Sender slot time"
-msgstr ""
-
-#: scheduling/models.py:207
-msgid "Receiver slot time"
-msgstr ""
-
-#: scheduling/models.py:209
-msgid "Exchange time"
-msgstr ""
-
-#: scheduling/models.py:212
-msgid "SwapLog"
-msgstr ""
-
-#: scheduling/models.py:213
-msgid "SwapLogs"
-msgstr ""
-
-#: scheduling/models.py:226
-msgid "User"
-msgstr ""
+msgstr "Heure du créneau de l’expéditeur"
 
 #: scheduling/models.py:231
-msgid "Enrollment"
-msgstr ""
+msgid "Receiver slot time"
+msgstr "Heure du créneau du destinataire"
 
-#: scheduling/models.py:232
-msgid "Enrollments"
-msgstr ""
+#: scheduling/models.py:233
+msgid "Exchange time"
+msgstr "Heure de l’échange"
 
-#: scheduling/models.py:250
-msgid "Token"
-msgstr ""
+#: scheduling/models.py:236
+msgid "SwapLog"
+msgstr "Historique des échanges"
+
+#: scheduling/models.py:237
+msgid "SwapLogs"
+msgstr "Historique des échanges"
+
+#: scheduling/models.py:251
+msgid "User"
+msgstr "Utilisateur"
 
 #: scheduling/models.py:258
+msgid "Enrollment"
+msgstr "Inscription"
+
+#: scheduling/models.py:259
+msgid "Enrollments"
+msgstr "Inscriptions"
+
+#: scheduling/models.py:272
+msgid "Only students can be enrolled in an exam"
+msgstr "Seuls les étudiants peuvent être inscrits à un examen"
+
+#: scheduling/models.py:284
+msgid "Token"
+msgstr "Jeton"
+
+#: scheduling/models.py:292
 msgid "Student name"
-msgstr ""
+msgstr "Nom de l’étudiant"
 
-#: scheduling/models.py:266
+#: scheduling/models.py:300
 msgid "Student email"
-msgstr ""
+msgstr "E-mail de l’étudiant"
 
-#: scheduling/models.py:273
+#: scheduling/models.py:307
 msgid "Usage counter"
-msgstr ""
+msgstr "Compteur d’utilisations"
 
-#: scheduling/models.py:275
+#: scheduling/models.py:309
 msgid "Usage limit"
-msgstr ""
+msgstr "Limite d’utilisation"
 
-#: scheduling/models.py:277
+#: scheduling/models.py:311
 msgid "Is revoked"
-msgstr ""
+msgstr "Est révoquée"
 
-#: scheduling/models.py:280
+#: scheduling/models.py:314
 msgid "Invite"
-msgstr ""
+msgstr "Invitation"
 
-#: scheduling/models.py:281
+#: scheduling/models.py:315
 msgid "Invites"
-msgstr ""
+msgstr "Invitations"
 
-#: scheduling/views.py:128
+#: scheduling/views.py:139
 msgid "Slot successfully taken"
-msgstr ""
+msgstr "Créneau réservé avec succès"
 
-#: scheduling/views.py:143
+#: scheduling/views.py:154
 msgid "Slot successfully released"
-msgstr ""
+msgstr "Créneau libéré avec succès"
 
-#: scheduling/views.py:157
+#: scheduling/views.py:168
 msgid "You need a slot to offer a swap"
-msgstr ""
+msgstr "Tu dois avoir un créneau pour proposer un échange"
 
-#: scheduling/views.py:165
+#: scheduling/views.py:176
 msgid "Offer sent successfully"
-msgstr ""
+msgstr "Offre envoyée avec succès"
 
-#: scheduling/views.py:183
+#: scheduling/views.py:194
 #, python-format
 msgid "Swapped: your new slot is %(time)s"
-msgstr ""
+msgstr "Échange effectué : ton nouveau créneau est %(time)s"
 
-#: scheduling/views.py:200
+#: scheduling/views.py:211
 msgid "Offer declined"
-msgstr ""
+msgstr "Offre refusée"
 
-#: scheduling/views.py:215
+#: scheduling/views.py:226
 msgid "Offer withdrawn"
-msgstr ""
+msgstr "Offre retirée"
 
-#: scheduling/views.py:260 scheduling/views.py:296
+#: scheduling/views.py:271 scheduling/views.py:307
 msgid "Invite accepted"
-msgstr ""
+msgstr "Invitation acceptée"
 
-#: templates/base.html:16
+#: scheduling/views.py:369
+msgid "Exam saved"
+msgstr "Examen enregistré"
+
+#: scheduling/views.py:435
+msgid "Day deleted"
+msgstr "Journée supprimée"
+
+#: scheduling/views.py:464
+msgid "The name does not match. Nothing was deleted."
+msgstr "Le nom ne correspond pas. Rien n’a été supprimé."
+
+#: scheduling/views.py:471
+msgid "Exam deleted"
+msgstr "Examen supprimé"
+
+#: scheduling/views.py:498
+msgid "Invite created"
+msgstr "Invitation créée"
+
+#: scheduling/views.py:516
+msgid "Invite revoked"
+msgstr "Invitation révoquée"
+
+#: scheduling/views.py:532
+msgid "Student removed"
+msgstr "Étudiant retiré"
+
+#: templates/base.html:18
 msgid "Main"
-msgstr ""
+msgstr "Accueil"
 
-#: templates/base.html:19
+#: templates/base.html:21
 msgid "Add exam"
-msgstr ""
+msgstr "Ajouter un examen"
 
-#: templates/base.html:25
+#: templates/base.html:27
 msgid "Notifications"
-msgstr ""
+msgstr "Notifications"
 
-#: templates/base.html:43
+#: templates/base.html:45
 msgid "Log out"
+msgstr "Se déconnecter"
+
+#: templates/base.html:56
+msgid "Language"
+msgstr "Langue"
+
+#: templates/edit_exam.html:4 templates/edit_exam.html:20
+msgid "New exam"
+msgstr "Nouvel examen"
+
+#: templates/edit_exam.html:6
+msgid ""
+"Delete this day and all its free slots? Unsaved changes on this page will be "
+"lost."
 msgstr ""
+"Supprimer cette journée et tous ses créneaux libres ? Les modifications non "
+"enregistrées sur cette page seront perdues."
+
+#: templates/edit_exam.html:7
+msgid ""
+"Remove this student? Their slot will be freed and their offers cancelled."
+msgstr ""
+"Retirer cet étudiant ? Son créneau sera libéré et ses offres annulées."
+
+#: templates/edit_exam.html:18 templates/exam_detail.html:11
+msgid "Edit exam"
+msgstr "Modifier l’examen"
+
+#: templates/edit_exam.html:25
+msgid "View exam"
+msgstr "Voir l’examen"
+
+#: templates/edit_exam.html:41
+msgid "min"
+msgstr "min"
+
+#: templates/edit_exam.html:51
+msgid "Save"
+msgstr "Enregistrer"
+
+#: templates/edit_exam.html:62
+msgid "Slot length is locked because slots already exist."
+msgstr "La durée des créneaux est verrouillée car des créneaux existent déjà."
+
+#: templates/edit_exam.html:71
+msgid "Shorter than one slot"
+msgstr "Plus court qu’un créneau"
+
+#: templates/edit_exam.html:73
+msgid "Enter the start and end time to see the slots"
+msgstr "Entre l’heure de début et de fin pour afficher les créneaux"
+
+#: templates/edit_exam.html:85 templates/exam_detail.html:49
+msgid "Free"
+msgstr "Libre"
+
+#: templates/edit_exam.html:97
+msgid "Delete day"
+msgstr "Supprimer la journée"
+
+#: templates/edit_exam.html:100
+msgid "Has booked slots"
+msgstr "Contient des créneaux réservés"
+
+#: templates/edit_exam.html:110
+msgid "Add day"
+msgstr "Ajouter une journée"
+
+#: templates/edit_exam.html:121
+msgid "Invitations"
+msgstr "Invitations"
+
+#: templates/edit_exam.html:127
+msgid "Max uses"
+msgstr "Utilisations max."
+
+#: templates/edit_exam.html:135
+msgid "Create link"
+msgstr "Créer le lien"
+
+#: templates/edit_exam.html:144
+msgid "Invitation link"
+msgstr "Lien d’invitation"
+
+#: templates/edit_exam.html:149
+msgid "Copied"
+msgstr "Copié"
+
+#: templates/edit_exam.html:149
+msgid "Copy"
+msgstr "Copier"
+
+#: templates/edit_exam.html:155 templates/edit_exam.html:156
+msgid "Show QR code"
+msgstr "Afficher le code QR"
+
+#: templates/edit_exam.html:176
+msgid "used"
+msgstr "utilisé"
+
+#: templates/edit_exam.html:177
+msgid "until"
+msgstr "jusqu’au"
+
+#: templates/edit_exam.html:184
+msgid "Revoke"
+msgstr "Révoquer"
+
+#: templates/edit_exam.html:188 templates/edit_exam.html:189
+msgid "Invitation QR code"
+msgstr "Code QR d’invitation"
+
+#: templates/edit_exam.html:194
+msgid "Close"
+msgstr "Fermer"
+
+#: templates/edit_exam.html:199
+msgid "No invitation links yet."
+msgstr "Aucun lien d’invitation pour le moment."
+
+#: templates/edit_exam.html:203
+msgid "Students"
+msgstr "Étudiants"
+
+#: templates/edit_exam.html:209
+msgid "no slot yet"
+msgstr "pas encore de créneau"
+
+#: templates/edit_exam.html:217
+msgid "Remove"
+msgstr "Retirer"
+
+#: templates/edit_exam.html:221
+msgid "Nobody has joined yet. Share an invitation link."
+msgstr "Personne n’a encore rejoint. Partage un lien d’invitation."
+
+#: templates/edit_exam.html:226
+msgid "Save the exam first, then you can create invitation links."
+msgstr "Enregistre d’abord l’examen pour pouvoir créer des liens d’invitation."
+
+#: templates/edit_exam.html:231 templates/exam_delete.html:3
+#: templates/exam_delete.html:6 templates/exam_delete.html:33
+msgid "Delete exam"
+msgstr "Supprimer l’examen"
+
+#: templates/exam_delete.html:8
+#, python-format
+msgid ""
+"You are about to delete “%(name)s”. This cannot be undone. The following "
+"will be deleted:"
+msgstr ""
+"Tu es sur le point de supprimer « %(name)s ». Cette action est irréversible. "
+"Les éléments suivants seront supprimés :"
+
+#: templates/exam_delete.html:11
+msgid "exam days"
+msgstr "journées d’examen"
+
+#: templates/exam_delete.html:12
+msgid "slots"
+msgstr "créneaux"
+
+#: templates/exam_delete.html:12
+msgid "of which booked"
+msgstr "dont réservés"
+
+#: templates/exam_delete.html:13
+msgid "enrolled students"
+msgstr "étudiants inscrits"
+
+#: templates/exam_delete.html:14
+msgid "active swap offers"
+msgstr "offres d’échange actives"
+
+#: templates/exam_delete.html:15
+msgid "invitation links"
+msgstr "liens d’invitation"
+
+#: templates/exam_delete.html:17
+msgid "The swap history is kept."
+msgstr "L’historique des échanges est conservé."
+
+#: templates/exam_delete.html:23
+#, python-format
+msgid "Students have already booked slots. Type “%(name)s” to confirm."
+msgstr ""
+"Des étudiants ont déjà réservé des créneaux. Tape « %(name)s » pour confirmer."
+
+#: templates/exam_delete.html:34
+msgid "Cancel"
+msgstr "Annuler"
 
 #: templates/exam_detail.html:5
 msgid "Move to this slot? Your offers for your current slot will be cancelled."
 msgstr ""
+"Passer à ce créneau ? Tes offres pour ton créneau actuel seront annulées."
 
 #: templates/exam_detail.html:6
 msgid "Send a swap offer for this slot? The student will see it on the site."
 msgstr ""
+"Envoyer une offre d’échange pour ce créneau ? L’étudiant la verra sur le "
+"site."
 
-#: templates/exam_detail.html:10
+#: templates/exam_detail.html:15
 msgid "Changes allowed until"
-msgstr ""
+msgstr "Modifications possibles jusqu’au"
 
-#: templates/exam_detail.html:13
+#: templates/exam_detail.html:18
 msgid "Changes are closed for this exam."
-msgstr ""
+msgstr "Les modifications sont closes pour cet examen."
 
-#: templates/exam_detail.html:19
+#: templates/exam_detail.html:24
 #, python-format
 msgid "You can send %(counter)s more offer."
 msgid_plural "You can send %(counter)s more offers."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Tu peux encore envoyer %(counter)s offre."
+msgstr[1] "Tu peux encore envoyer %(counter)s offres."
+msgstr[2] "Tu peux encore envoyer %(counter)s offres."
 
-#: templates/exam_detail.html:21
+#: templates/exam_detail.html:26
 msgid ""
 "You have reached the limit of active offers. Wait for answers or withdraw "
 "any offer"
 msgstr ""
+"Tu as atteint la limite d’offres actives. Attends les réponses ou retire une "
+"offre"
 
-#: templates/exam_detail.html:39
-msgid "Free"
-msgstr ""
-
-#: templates/exam_detail.html:41
+#: templates/exam_detail.html:51
 msgid "You"
-msgstr ""
+msgstr "Toi"
 
-#: templates/exam_detail.html:46
+#: templates/exam_detail.html:56
 msgid "Wants to swap with you"
-msgstr ""
-
-#: templates/exam_detail.html:57
-msgid "Move here"
-msgstr ""
-
-#: templates/exam_detail.html:59
-msgid "Take"
-msgstr ""
+msgstr "Souhaite échanger avec toi"
 
 #: templates/exam_detail.html:67
-msgid "Release"
-msgstr ""
+msgid "Move here"
+msgstr "Déplacer ici"
 
-#: templates/exam_detail.html:70
+#: templates/exam_detail.html:69
+msgid "Take"
+msgstr "Prendre"
+
+#: templates/exam_detail.html:77
+msgid "Release"
+msgstr "Libérer"
+
+#: templates/exam_detail.html:80
 #, python-format
 msgid "Swap your %(mine)s slot for %(theirs)s?"
-msgstr ""
+msgstr "Échanger ton créneau %(mine)s contre %(theirs)s ?"
 
-#: templates/exam_detail.html:76
+#: templates/exam_detail.html:86
 msgid "Accept swap"
-msgstr ""
+msgstr "Accepter l’échange"
 
-#: templates/exam_detail.html:81
+#: templates/exam_detail.html:91
 msgid "Decline"
-msgstr ""
+msgstr "Refuser"
 
-#: templates/exam_detail.html:87
+#: templates/exam_detail.html:97
 msgid "Withdraw offer"
-msgstr ""
+msgstr "Retirer l’offre"
 
-#: templates/exam_detail.html:95
+#: templates/exam_detail.html:105
 msgid "Swap"
-msgstr ""
+msgstr "Échanger"
 
-#: templates/exam_detail.html:106
+#: templates/exam_detail.html:116
 msgid "No exam days yet."
-msgstr ""
+msgstr "Aucune journée d’examen pour le moment."
 
-#: templates/exam_detail.html:111
+#: templates/exam_detail.html:121
 msgid "Your offer history"
-msgstr ""
+msgstr "Historique de tes offres"
 
-#: templates/exam_detail.html:114
+#: templates/exam_detail.html:124
 #, python-format
 msgid "For the %(t)s slot"
-msgstr ""
+msgstr "Pour le créneau %(t)s"
 
 #: templates/home.html:9
 msgid "You have no exams yet."
-msgstr ""
+msgstr "Tu n’as pas encore d’examens."
 
 #: templates/home.html:11
 msgid ""
 "You are not enrolled in any exam yet. Open the invitation link from your "
 "teacher."
 msgstr ""
+"Tu n’es encore inscrit à aucun examen. Ouvre le lien d’invitation envoyé par "
+"ton enseignant."
 
 #: templates/home.html:29
 msgid "Dates are not set yet"
-msgstr ""
+msgstr "Les dates ne sont pas encore définies"
 
 #: templates/home.html:38
 msgid "Past exams"
-msgstr ""
+msgstr "Examens passés"
 
 #: templates/join.html:3 templates/join.html:6
 msgid "Invitation"
-msgstr ""
+msgstr "Invitation"
 
 #: templates/join.html:9 templates/register.html:8
 #, python-format
 msgid "You are invited to the exam “%(name)s”."
-msgstr ""
+msgstr "Tu es invité à l’examen « %(name)s »."
 
 #: templates/join.html:16
 msgid "Back to Slotly"
-msgstr ""
+msgstr "Retour à Slotly"
 
 #: templates/join.html:18
 msgid "Already joined this exam? Log in to open it."
-msgstr ""
+msgstr "Déjà inscrit à cet examen ? Connecte-toi pour l’ouvrir."
 
 #: templates/join.html:20 templates/join.html:30 templates/register.html:32
 #: templates/registration/login.html:3 templates/registration/login.html:6
 #: templates/registration/login.html:30
 msgid "Log in"
-msgstr ""
+msgstr "Se connecter"
 
 #: templates/join.html:25
 msgid "Join exam"
-msgstr ""
+msgstr "Rejoindre l’examen"
 
 #: templates/join.html:28
 msgid "Log in or create an account to join."
-msgstr ""
+msgstr "Connecte-toi ou crée un compte pour participer."
 
 #: templates/join.html:32 templates/register.html:3
 msgid "Register"
-msgstr ""
+msgstr "S’inscrire"
+
+#: templates/partials/day_draft.html:6
+msgid "New day"
+msgstr "Nouvelle journée"
+
+#: templates/partials/day_draft.html:10
+msgid "Remove day"
+msgstr "Retirer la journée"
+
+#: templates/partials/day_draft.html:34
+msgid "Preview"
+msgstr "Aperçu"
 
 #: templates/register.html:6
 msgid "Create an account"
-msgstr ""
+msgstr "Créer un compte"
 
 #: templates/register.html:28
 msgid "Register and join"
-msgstr ""
+msgstr "S’inscrire et participer"
 
 #: templates/register.html:31
 msgid "Already have an account?"
-msgstr ""
+msgstr "Tu as déjà un compte ?"
 
 #: templates/registration/login.html:14
 msgid "Username"
-msgstr ""
+msgstr "Nom d’utilisateur"
 
 #: templates/registration/login.html:23
 msgid "Password"
-msgstr ""
+msgstr "Mot de passe"
