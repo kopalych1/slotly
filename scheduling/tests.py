@@ -2272,3 +2272,28 @@ def test_editor_shows_qr_button_only_for_live_invites(self):
 
     self.assertContains(response, f'data-qr-open="qr-{live.pk}"')
     self.assertNotContains(response, f'data-qr-open="qr-{dead.pk}"')
+
+
+class LanguageSwitchTests(SchedulingTestCase):
+    def test_switcher_is_visible_to_anonymous_visitors(self):
+        response = self.client.get(reverse('login'))
+
+        self.assertContains(response, reverse('set_language'))
+
+    def test_chosen_language_is_remembered_and_set_on_the_page(self):
+        self.client.post(
+            reverse('set_language'), {'language': 'nl', 'next': reverse('login')}
+        )
+
+        page = self.client.get(reverse('login'))
+
+        self.assertContains(page, '<html lang="nl"')
+
+    def test_unsupported_language_is_ignored(self):
+        self.client.post(
+            reverse('set_language'), {'language': 'xx', 'next': reverse('login')}
+        )
+
+        page = self.client.get(reverse('login'))
+
+        self.assertContains(page, '<html lang="en"')
