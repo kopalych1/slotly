@@ -1,0 +1,581 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-14 01:49+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: nl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: accounts/models.py:8
+msgid "Teacher"
+msgstr ""
+
+#: accounts/models.py:9
+msgid "Student"
+msgstr ""
+
+#: scheduling/exceptions.py:7
+msgid "Something went wrong"
+msgstr ""
+
+#: scheduling/exceptions.py:14
+msgid "The user is not enrolled for this exam"
+msgstr ""
+
+#: scheduling/exceptions.py:18
+msgid "Slots cannot be generated for this day"
+msgstr ""
+
+#: scheduling/exceptions.py:22 scheduling/models.py:61
+msgid "Exam day must end after it starts"
+msgstr ""
+
+#: scheduling/exceptions.py:26 scheduling/models.py:63
+msgid "Exam day is shorter than a single slot"
+msgstr ""
+
+#: scheduling/exceptions.py:30
+msgid "Slots already exist for this day"
+msgstr ""
+
+#: scheduling/exceptions.py:34
+msgid "Offer cannot be created"
+msgstr ""
+
+#: scheduling/exceptions.py:38
+msgid "You do not own this slot"
+msgstr ""
+
+#: scheduling/exceptions.py:42
+msgid "You cannot swap a slot with itself"
+msgstr ""
+
+#: scheduling/exceptions.py:46
+msgid "The wanted slot is free, so you can just take it"
+msgstr ""
+
+#: scheduling/exceptions.py:50
+msgid "Slots belong to different exams"
+msgstr ""
+
+#: scheduling/exceptions.py:54
+msgid "The deadline for changing slots has passed"
+msgstr ""
+
+#: scheduling/exceptions.py:58
+msgid "You already have an active offer for this pair of slots"
+msgstr ""
+
+#: scheduling/exceptions.py:62
+msgid "You have reached the limit for offers"
+msgstr ""
+
+#: scheduling/exceptions.py:66
+msgid "Offer cannot be accepted"
+msgstr ""
+
+#: scheduling/exceptions.py:70
+msgid "This offer is no longer active"
+msgstr ""
+
+#: scheduling/exceptions.py:74
+msgid "This offer has expired"
+msgstr ""
+
+#: scheduling/exceptions.py:78
+msgid "The offering student no longer holds that slot"
+msgstr ""
+
+#: scheduling/exceptions.py:82
+msgid "You do not hold the slot this offer is for"
+msgstr ""
+
+#: scheduling/exceptions.py:86
+msgid "You are not the author of this offer"
+msgstr ""
+
+#: scheduling/exceptions.py:90
+msgid "This action cannot be performed on the slot"
+msgstr ""
+
+#: scheduling/exceptions.py:94
+msgid "This slot is already taken"
+msgstr ""
+
+#: scheduling/exceptions.py:98
+msgid "You already hold this slot"
+msgstr ""
+
+#: scheduling/exceptions.py:102
+msgid "Your slot has changed, please refresh the page and try again"
+msgstr ""
+
+#: scheduling/exceptions.py:106
+msgid "This invitation cannot be used"
+msgstr ""
+
+#: scheduling/exceptions.py:110
+msgid "This invitation link is not valid"
+msgstr ""
+
+#: scheduling/exceptions.py:114
+msgid "This invitation has been revoked"
+msgstr ""
+
+#: scheduling/exceptions.py:118
+msgid "This invitation has expired"
+msgstr ""
+
+#: scheduling/exceptions.py:122
+msgid "This invitation has no uses left"
+msgstr ""
+
+#: scheduling/exceptions.py:126
+msgid "Teachers cannot join an exam as students"
+msgstr ""
+
+#: scheduling/exceptions.py:130
+msgid "The exam cannot be saved"
+msgstr ""
+
+#: scheduling/exceptions.py:134
+msgid "Only teachers can manage exams"
+msgstr ""
+
+#: scheduling/exceptions.py:138
+msgid "You are not the owner of this exam"
+msgstr ""
+
+#: scheduling/exceptions.py:142
+msgid "Slot duration cannot be changed once slots exist"
+msgstr ""
+
+#: scheduling/exceptions.py:146
+msgid "Exam days must not overlap"
+msgstr ""
+
+#: scheduling/models.py:21 scheduling/models.py:208
+msgid "Exam name"
+msgstr ""
+
+#: scheduling/models.py:23 scheduling/models.py:83
+msgid "Owner"
+msgstr ""
+
+#: scheduling/models.py:26
+msgid "Slot time duration"
+msgstr ""
+
+#: scheduling/models.py:27
+msgid "time in minutes"
+msgstr ""
+
+#: scheduling/models.py:31
+msgid "Slots change deadline"
+msgstr ""
+
+#: scheduling/models.py:34 scheduling/models.py:46 scheduling/models.py:75
+#: scheduling/models.py:223 scheduling/models.py:247
+msgid "Exam"
+msgstr ""
+
+#: scheduling/models.py:35 templates/base.html:17 templates/home.html:3
+#: templates/home.html:5
+msgid "Exams"
+msgstr ""
+
+#: scheduling/models.py:48
+msgid "Exam day start datetime"
+msgstr ""
+
+#: scheduling/models.py:49
+msgid "Exam day end datetime"
+msgstr ""
+
+#: scheduling/models.py:52
+msgid "ExamDay"
+msgstr ""
+
+#: scheduling/models.py:53
+msgid "ExamDays"
+msgstr ""
+
+#: scheduling/models.py:78
+msgid "Exam day"
+msgstr ""
+
+#: scheduling/models.py:80
+msgid "Slot start time"
+msgstr ""
+
+#: scheduling/models.py:90
+msgid "Slot"
+msgstr ""
+
+#: scheduling/models.py:91
+msgid "Slots"
+msgstr ""
+
+#: scheduling/models.py:118
+msgid "Awaiting"
+msgstr ""
+
+#: scheduling/models.py:119
+msgid "Accepted"
+msgstr ""
+
+#: scheduling/models.py:120
+msgid "Canceled"
+msgstr ""
+
+#: scheduling/models.py:121 templates/exam_detail.html:116
+msgid "Expired"
+msgstr ""
+
+#: scheduling/models.py:122
+msgid "Declined"
+msgstr ""
+
+#: scheduling/models.py:123
+msgid "Withdrawn"
+msgstr ""
+
+#: scheduling/models.py:126
+msgid "Offeror"
+msgstr ""
+
+#: scheduling/models.py:131
+msgid "Offered slot"
+msgstr ""
+
+#: scheduling/models.py:137
+msgid "Wanted slot"
+msgstr ""
+
+#: scheduling/models.py:141
+msgid "Status"
+msgstr ""
+
+#: scheduling/models.py:143 scheduling/models.py:228
+msgid "Created at"
+msgstr ""
+
+#: scheduling/models.py:144 scheduling/models.py:276
+msgid "Expires at"
+msgstr ""
+
+#: scheduling/models.py:147 scheduling/models.py:172
+msgid "Offer"
+msgstr ""
+
+#: scheduling/models.py:148
+msgid "Offers"
+msgstr ""
+
+#: scheduling/models.py:176
+msgid "Sender name"
+msgstr ""
+
+#: scheduling/models.py:177
+msgid "Receiver name"
+msgstr ""
+
+#: scheduling/models.py:180
+msgid "Sender"
+msgstr ""
+
+#: scheduling/models.py:187
+msgid "Receiver"
+msgstr ""
+
+#: scheduling/models.py:194
+msgid "Sender slot"
+msgstr ""
+
+#: scheduling/models.py:201
+msgid "Receiver slot"
+msgstr ""
+
+#: scheduling/models.py:206
+msgid "Sender slot time"
+msgstr ""
+
+#: scheduling/models.py:207
+msgid "Receiver slot time"
+msgstr ""
+
+#: scheduling/models.py:209
+msgid "Exchange time"
+msgstr ""
+
+#: scheduling/models.py:212
+msgid "SwapLog"
+msgstr ""
+
+#: scheduling/models.py:213
+msgid "SwapLogs"
+msgstr ""
+
+#: scheduling/models.py:226
+msgid "User"
+msgstr ""
+
+#: scheduling/models.py:231
+msgid "Enrollment"
+msgstr ""
+
+#: scheduling/models.py:232
+msgid "Enrollments"
+msgstr ""
+
+#: scheduling/models.py:250
+msgid "Token"
+msgstr ""
+
+#: scheduling/models.py:258
+msgid "Student name"
+msgstr ""
+
+#: scheduling/models.py:266
+msgid "Student email"
+msgstr ""
+
+#: scheduling/models.py:273
+msgid "Usage counter"
+msgstr ""
+
+#: scheduling/models.py:275
+msgid "Usage limit"
+msgstr ""
+
+#: scheduling/models.py:277
+msgid "Is revoked"
+msgstr ""
+
+#: scheduling/models.py:280
+msgid "Invite"
+msgstr ""
+
+#: scheduling/models.py:281
+msgid "Invites"
+msgstr ""
+
+#: scheduling/views.py:128
+msgid "Slot successfully taken"
+msgstr ""
+
+#: scheduling/views.py:143
+msgid "Slot successfully released"
+msgstr ""
+
+#: scheduling/views.py:157
+msgid "You need a slot to offer a swap"
+msgstr ""
+
+#: scheduling/views.py:165
+msgid "Offer sent successfully"
+msgstr ""
+
+#: scheduling/views.py:183
+#, python-format
+msgid "Swapped: your new slot is %(time)s"
+msgstr ""
+
+#: scheduling/views.py:200
+msgid "Offer declined"
+msgstr ""
+
+#: scheduling/views.py:215
+msgid "Offer withdrawn"
+msgstr ""
+
+#: scheduling/views.py:260 scheduling/views.py:296
+msgid "Invite accepted"
+msgstr ""
+
+#: templates/base.html:16
+msgid "Main"
+msgstr ""
+
+#: templates/base.html:19
+msgid "Add exam"
+msgstr ""
+
+#: templates/base.html:25
+msgid "Notifications"
+msgstr ""
+
+#: templates/base.html:43
+msgid "Log out"
+msgstr ""
+
+#: templates/exam_detail.html:5
+msgid "Move to this slot? Your offers for your current slot will be cancelled."
+msgstr ""
+
+#: templates/exam_detail.html:6
+msgid "Send a swap offer for this slot? The student will see it on the site."
+msgstr ""
+
+#: templates/exam_detail.html:10
+msgid "Changes allowed until"
+msgstr ""
+
+#: templates/exam_detail.html:13
+msgid "Changes are closed for this exam."
+msgstr ""
+
+#: templates/exam_detail.html:19
+#, python-format
+msgid "You can send %(counter)s more offer."
+msgid_plural "You can send %(counter)s more offers."
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/exam_detail.html:21
+msgid ""
+"You have reached the limit of active offers. Wait for answers or withdraw "
+"any offer"
+msgstr ""
+
+#: templates/exam_detail.html:39
+msgid "Free"
+msgstr ""
+
+#: templates/exam_detail.html:41
+msgid "You"
+msgstr ""
+
+#: templates/exam_detail.html:46
+msgid "Wants to swap with you"
+msgstr ""
+
+#: templates/exam_detail.html:57
+msgid "Move here"
+msgstr ""
+
+#: templates/exam_detail.html:59
+msgid "Take"
+msgstr ""
+
+#: templates/exam_detail.html:67
+msgid "Release"
+msgstr ""
+
+#: templates/exam_detail.html:70
+#, python-format
+msgid "Swap your %(mine)s slot for %(theirs)s?"
+msgstr ""
+
+#: templates/exam_detail.html:76
+msgid "Accept swap"
+msgstr ""
+
+#: templates/exam_detail.html:81
+msgid "Decline"
+msgstr ""
+
+#: templates/exam_detail.html:87
+msgid "Withdraw offer"
+msgstr ""
+
+#: templates/exam_detail.html:95
+msgid "Swap"
+msgstr ""
+
+#: templates/exam_detail.html:106
+msgid "No exam days yet."
+msgstr ""
+
+#: templates/exam_detail.html:111
+msgid "Your offer history"
+msgstr ""
+
+#: templates/exam_detail.html:114
+#, python-format
+msgid "For the %(t)s slot"
+msgstr ""
+
+#: templates/home.html:9
+msgid "You have no exams yet."
+msgstr ""
+
+#: templates/home.html:11
+msgid ""
+"You are not enrolled in any exam yet. Open the invitation link from your "
+"teacher."
+msgstr ""
+
+#: templates/home.html:29
+msgid "Dates are not set yet"
+msgstr ""
+
+#: templates/home.html:38
+msgid "Past exams"
+msgstr ""
+
+#: templates/join.html:3 templates/join.html:6
+msgid "Invitation"
+msgstr ""
+
+#: templates/join.html:9 templates/register.html:8
+#, python-format
+msgid "You are invited to the exam “%(name)s”."
+msgstr ""
+
+#: templates/join.html:16
+msgid "Back to Slotly"
+msgstr ""
+
+#: templates/join.html:18
+msgid "Already joined this exam? Log in to open it."
+msgstr ""
+
+#: templates/join.html:20 templates/join.html:30 templates/register.html:32
+#: templates/registration/login.html:3 templates/registration/login.html:6
+#: templates/registration/login.html:30
+msgid "Log in"
+msgstr ""
+
+#: templates/join.html:25
+msgid "Join exam"
+msgstr ""
+
+#: templates/join.html:28
+msgid "Log in or create an account to join."
+msgstr ""
+
+#: templates/join.html:32 templates/register.html:3
+msgid "Register"
+msgstr ""
+
+#: templates/register.html:6
+msgid "Create an account"
+msgstr ""
+
+#: templates/register.html:28
+msgid "Register and join"
+msgstr ""
+
+#: templates/register.html:31
+msgid "Already have an account?"
+msgstr ""
+
+#: templates/registration/login.html:14
+msgid "Username"
+msgstr ""
+
+#: templates/registration/login.html:23
+msgid "Password"
+msgstr ""

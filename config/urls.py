@@ -76,4 +76,5 @@ urlpatterns = [
         scheduling.views.student_remove,
         name='student_remove',
     ),
+    path('i18n/', include('django.conf.urls.i18n')),
 ]
