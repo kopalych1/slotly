@@ -143,14 +143,28 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 
 STATIC_ROOT = Path(os.getenv('STATIC_ROOT', BASE_DIR / 'staticfiles'))
 
+
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+if os.getenv('SMTP_HOST'):
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+            'OPTIONS': {
+                'host': os.getenv('SMTP_HOST'),
+                'username': os.getenv('SMTP_USER'),
+                'password': os.getenv('SMTP_PASSWORD'),
+                'use_tls': True,
+            },
+        },
+    }
+else:  # local development: print emails to the console
+    MAILERS = {
+        'default': {'BACKEND': 'django.core.mail.backends.console.EmailBackend'},
+    }
+
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Slotly <slotly@localhost>')
 
 
 # Auth User
