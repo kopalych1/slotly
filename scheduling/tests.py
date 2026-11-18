@@ -2297,3 +2297,14 @@ class LanguageSwitchTests(SchedulingTestCase):
         page = self.client.get(reverse('login'))
 
         self.assertContains(page, '<html lang="en"')
+
+
+def test_add_exam_button_is_for_teachers_only(self):
+    new_url = reverse('exam_new')
+    self.client.force_login(self.teacher)
+    self.assertContains(self.client.get(reverse('home')), new_url)
+
+    self.client.force_login(self.students[0])
+    response = self.client.get(reverse('home'), follow=True)
+
+    self.assertNotContains(response, new_url)

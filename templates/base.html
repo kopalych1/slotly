@@ -15,12 +15,6 @@
       <div class="container site-header__inner">
         <a class="brand" href="{% url 'home' %}">Slotly</a>
         {% if user.is_authenticated %}
-          <nav class="site-nav" aria-label="{% trans 'Main' %}">
-            <a href="{% url 'home' %}">{% trans "Exams" %}</a>
-            {% if user.is_teacher %}
-              <a href="{% url 'exam_new' %}">{% trans "Add exam" %}</a>
-            {% endif %}
-          </nav>
           <div class="site-header__user">
             <button class="icon-btn"
                     type="button"
@@ -56,7 +50,8 @@
                   aria-label="{% trans 'Language' %}">
             {% for code, name in LANGUAGES %}
               <option value="{{ code }}"
-                      {% if code == CURRENT_LANGUAGE %} selected{% endif %}>{{ name }}</option>
+                      title="{{ name }}"
+                      {% if code == CURRENT_LANGUAGE %} selected{% endif %}>{{ code|upper }}</option>
             {% endfor %}
           </select>
           <noscript>

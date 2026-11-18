@@ -902,9 +902,17 @@ a.btn {
 .site-header__user + .lang-switch {
   margin-left: 0;
 }
+.site-header .btn,
+.brand {
+  white-space: nowrap;
+}
+.site-header .btn--ghost {
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+}
 .lang-switch select {
   min-height: 2.5rem;
-  max-width: 8rem;
+  max-width: 4.5rem;
   padding: 0 0.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);

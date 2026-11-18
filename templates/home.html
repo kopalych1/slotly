@@ -2,7 +2,12 @@
 {% load i18n %}
 {% block title %}{% trans "Exams" %} · Slotly{% endblock %}
 {% block content %}
-  <h1>{% trans "Exams" %}</h1>
+  <div class="exam-header__row">
+    <h1>{% trans "Exams" %}</h1>
+    {% if user.is_teacher %}
+      <a class="btn btn--primary" href="{% url 'exam_new' %}">{% trans "Add exam" %}</a>
+    {% endif %}
+  </div>
   {% if not upcoming and not past %}
     <p class="muted">
       {% if user.is_teacher %}

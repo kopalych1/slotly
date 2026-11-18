@@ -14,6 +14,9 @@
       {% if user.is_authenticated %}
         <a class="btn btn--ghost btn--block"
            href="{% url 'home' %}">{% trans "Back to Slotly" %}</a>
+        {% if user.is_teacher %}
+          <p class="muted">{% trans "You are logged in as a teacher. To try the student view, open this link in a private window, or log out first." %}</p>
+        {% endif %}
       {% else %}
         <p class="muted">{% trans "Already joined this exam? Log in to open it." %}</p>
         <a class="btn btn--ghost btn--block"
