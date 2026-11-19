@@ -4,6 +4,8 @@ from datetime import timedelta
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models import Q
+from django.db.models.functions import Lower
 from django.urls import reverse
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
@@ -287,9 +289,17 @@ class Invite(models.Model):
         default=generate_invite_token,
         editable=False,
     )
-    name = models.CharField(
+    first_name = models.CharField(
         _(
-            'Student name',
+            'Student first name',
+        ),
+        blank=True,
+        default='',
+        max_length=100,
+    )
+    last_name = models.CharField(
+        _(
+            'Student last name',
         ),
         blank=True,
         default='',
@@ -309,6 +319,7 @@ class Invite(models.Model):
     usage_limit = models.PositiveIntegerField(_('Usage limit'), null=True, blank=True)
     expires_at = models.DateTimeField(_('Expires at'), null=True, blank=True)
     is_revoked = models.BooleanField(_('Is revoked'), default=False)
+    sent_at = models.DateTimeField(_('Sent at'), null=True, blank=True, editable=False)
 
     class Meta:
         verbose_name = _('Invite')
@@ -325,7 +336,14 @@ class Invite(models.Model):
                 | models.Q(usage_limit__gt=0),
                 name='invite_usage_limit_positive',
             ),
+            models.UniqueConstraint(
+                Lower('email'),
+                'exam',
+                condition=Q(is_revoked=False) & ~Q(email=''),
+                name='unique_live_invite_email_per_exam',
+            ),
         )
 
     def __str__(self):
-        return f'{self.exam} - {self.name or "shared"}'
+        full = f'{self.first_name} {self.last_name}'.strip()
+        return f'{self.exam} - {full or "shared"}'

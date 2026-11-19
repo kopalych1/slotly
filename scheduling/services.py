@@ -3,6 +3,7 @@ from itertools import pairwise
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.db.models.functions import Lower
 from django.utils.timezone import now
 
 from accounts.models import User
@@ -422,8 +423,6 @@ def create_invite(
     exam_id: int,
     user: User,
     usage_limit: int | None = None,
-    name: str | None = None,
-    email: str | None = None,
     expires_at: datetime | None = None,
 ) -> Invite:
 
@@ -443,8 +442,6 @@ def create_invite(
 
     return Invite.objects.create(
         exam_id=exam_id,
-        name=name or '',
-        email=email or '',
         usage_limit=usage_limit,
         expires_at=expires_at if expires_at else exam.slots_change_deadline,
     )

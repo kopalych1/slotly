@@ -61,7 +61,8 @@ class InviteAdmin(admin.ModelAdmin):
     readonly_fields = ('token', 'usage_counter')
     list_display = (
         'exam',
-        'name',
+        'first_name',
+        'last_name',
         'email',
         'usage_counter',
         'usage_limit',

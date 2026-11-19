@@ -307,7 +307,13 @@ def register(request, token: str):
                 messages.success(request, _('Invite accepted'))
                 return redirect('exam_detail', pk=invite.exam_id)  # pyright: ignore[reportAttributeAccessIssue]
     else:
-        form = RegisterForm(initial={'email': invite.email})
+        form = RegisterForm(
+            initial={
+                'email': invite.email,
+                'first_name': invite.first_name,
+                'last_name': invite.last_name,
+            }
+        )
 
     return render(
         request, 'register.html', {'form': form, 'invite': invite, 'exam': invite.exam}

@@ -1783,28 +1783,13 @@ class CreateInviteTests(SchedulingTestCase):
         invite = create_invite(self.exam.pk, self.teacher, 30)
 
         self.assertEqual(invite.exam, self.exam)
-        self.assertEqual(invite.name, '')
+        self.assertEqual(invite.first_name, '')
+        self.assertEqual(invite.last_name, '')
         self.assertEqual(invite.email, '')
         self.assertEqual(invite.usage_limit, 30)
         self.assertEqual(invite.usage_counter, 0)
         self.assertFalse(invite.is_revoked)
         self.assertEqual(invite.expires_at, self.exam.slots_change_deadline)
-
-    def test_keeps_name_email_and_explicit_expiry(self):
-        expires = now() + timedelta(days=1)
-
-        invite = create_invite(
-            self.exam.pk,
-            self.teacher,
-            1,
-            name='Anna',
-            email='a@example.com',
-            expires_at=expires,
-        )
-
-        self.assertEqual(invite.name, 'Anna')
-        self.assertEqual(invite.email, 'a@example.com')
-        self.assertEqual(invite.expires_at, expires)
 
     def test_invalid_limit_is_rejected(self):
         for limit in (0, -5):

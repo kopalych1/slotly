@@ -13,3 +13,5 @@ class RegisterForm(UserCreationForm):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.fields['email'].required = True
+        self.fields['first_name'].required = True
+        self.fields['last_name'].required = True
