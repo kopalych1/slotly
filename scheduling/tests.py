@@ -2429,6 +2429,14 @@ class CreatePersonalInvitesTests(SchedulingTestCase):
 
         self.assertEqual(Invite.objects.count(), 0)
 
+    def test_dry_run_creates_nothing(self):
+        result = create_personal_invites(
+            self.exam.pk, self.teacher, self.rows('a@example.com'), dry_run=True
+        )
+
+        self.assertEqual(len(result.created), 1)
+        self.assertEqual(Invite.objects.count(), 0)
+
 
 class ParsePastedRowsTests(SimpleTestCase):
     def test_single_column_of_emails(self):

@@ -4,10 +4,11 @@ from itertools import pairwise
 
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
 from django.db.models import Q
 from django.db.models.functions import Lower
 from django.utils.timezone import now
+from django.utils.translation import gettext_lazy as _
 
 from accounts.models import User
 from scheduling.exceptions import (
@@ -453,12 +454,17 @@ def create_invite(
     )
 
 
+class SkipReason(models.TextChoices):
+    INVALID_EMAIL = 'invalid_email', _('Invalid email')
+    DUPLICATE = 'duplicate', _('Duplicate in the list')
+    ALREADY_INVITED = 'already_invited', _('Already invited')
+    ALREADY_ENROLLED = 'already_enrolled', _('Already joined this exam')
+
+
 @dataclass(frozen=True)
 class SkippedRow:
     row: dict[str, str]
-    reason: (
-        str  # 'invalid_email' | 'duplicate' | 'already_invited' | 'already_enrolled'
-    )
+    reason: SkipReason
 
 
 @dataclass(frozen=True)
@@ -472,6 +478,7 @@ def create_personal_invites(
     user: User,
     student_data: list[dict[str, str]],
     expires_at: datetime | None = None,
+    dry_run: bool = False,
 ) -> PersonalInvitesResult:
     if len(student_data) > MAX_IMPORT_ROWS:
         raise TooManyRowsError()
@@ -496,10 +503,10 @@ def create_personal_invites(
         try:
             validate_email(email)
         except ValidationError:
-            skipped.append(SkippedRow(data, 'invalid_email'))
+            skipped.append(SkippedRow(data, SkipReason.INVALID_EMAIL))
             continue
         if email in seen:
-            skipped.append(SkippedRow(data, 'duplicate'))
+            skipped.append(SkippedRow(data, SkipReason.DUPLICATE))
             continue
         seen.add(email)
         candidates.append((email, data))
@@ -522,9 +529,9 @@ def create_personal_invites(
     invites: list[Invite] = []
     for email, data in candidates:
         if email in already_enrolled:
-            skipped.append(SkippedRow(data, 'already_enrolled'))
+            skipped.append(SkippedRow(data, SkipReason.ALREADY_ENROLLED))
         elif email in already_invited:
-            skipped.append(SkippedRow(data, 'already_invited'))
+            skipped.append(SkippedRow(data, SkipReason.ALREADY_INVITED))
         else:
             invites.append(
                 Invite(
@@ -536,6 +543,8 @@ def create_personal_invites(
                     email=email,
                 )
             )
+    if dry_run:
+        return PersonalInvitesResult(created=invites, skipped=skipped)
 
     try:
         with transaction.atomic():
