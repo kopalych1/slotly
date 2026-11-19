@@ -47,6 +47,7 @@ from scheduling.exceptions import (
 )
 from scheduling.forms import ExamForm
 from scheduling.models import Enrollment, Exam, ExamDay, Invite, Offer, Slot, SwapLog
+from scheduling.parsing import parse_pasted_rows
 from scheduling.services import (
     MAX_IMPORT_ROWS,
     accept_invite,
@@ -2427,3 +2428,83 @@ class CreatePersonalInvitesTests(SchedulingTestCase):
             )
 
         self.assertEqual(Invite.objects.count(), 0)
+
+
+class ParsePastedRowsTests(SimpleTestCase):
+    def test_single_column_of_emails(self):
+        rows = parse_pasted_rows('a@example.com\nb@example.com')
+
+        self.assertEqual(
+            rows,
+            [{'email': 'a@example.com'}, {'email': 'b@example.com'}],
+        )
+
+    def test_tab_separated_from_excel(self):
+        rows = parse_pasted_rows('Anna\tSmith\ta@example.com')
+
+        self.assertEqual(
+            rows,
+            [{'email': 'a@example.com', 'first_name': 'Anna', 'last_name': 'Smith'}],
+        )
+
+    def test_column_order_does_not_matter(self):
+        rows = parse_pasted_rows('a@example.com\tAnna\tSmith')
+
+        self.assertEqual(
+            rows,
+            [{'email': 'a@example.com', 'first_name': 'Anna', 'last_name': 'Smith'}],
+        )
+
+    def test_semicolon_and_comma_delimiters(self):
+        rows = parse_pasted_rows(
+            'Anna; Smith; a@example.com\nBob, Jones, b@example.com'
+        )
+
+        self.assertEqual(rows[0]['first_name'], 'Anna')
+        self.assertEqual(rows[0]['last_name'], 'Smith')
+        self.assertEqual(rows[0]['email'], 'a@example.com')
+        self.assertEqual(rows[1]['first_name'], 'Bob')
+        self.assertEqual(rows[1]['last_name'], 'Jones')
+        self.assertEqual(rows[1]['email'], 'b@example.com')
+
+    def test_tab_takes_priority_over_comma_in_names(self):
+        rows = parse_pasted_rows('Doe, John\tSmith\ta@example.com')
+
+        self.assertEqual(rows[0]['first_name'], 'Doe, John')
+        self.assertEqual(rows[0]['last_name'], 'Smith')
+
+    def test_skips_blank_lines_and_handles_crlf(self):
+        rows = parse_pasted_rows('\r\na@example.com\r\n\r\n   \r\nb@example.com\r\n')
+
+        self.assertEqual([r['email'] for r in rows], ['a@example.com', 'b@example.com'])
+
+    def test_strips_whitespace_in_cells(self):
+        rows = parse_pasted_rows('  Anna ;  Smith ; a@example.com  ')
+
+        self.assertEqual(
+            rows,
+            [{'email': 'a@example.com', 'first_name': 'Anna', 'last_name': 'Smith'}],
+        )
+
+    def test_empty_name_column_keeps_position(self):
+        rows = parse_pasted_rows('\tSmith\ta@example.com')
+
+        self.assertEqual(rows[0]['first_name'], '')
+        self.assertEqual(rows[0]['last_name'], 'Smith')
+
+    def test_row_without_email_gets_empty_email(self):
+        rows = parse_pasted_rows('Anna\tSmith')
+
+        self.assertEqual(
+            rows, [{'email': '', 'first_name': 'Anna', 'last_name': 'Smith'}]
+        )
+
+    def test_extra_name_cells_are_ignored(self):
+        rows = parse_pasted_rows('Anna\tMaria\tSmith\ta@example.com')
+
+        self.assertEqual(rows[0]['first_name'], 'Anna')
+        self.assertEqual(rows[0]['last_name'], 'Maria')
+
+    def test_empty_text(self):
+        self.assertEqual(parse_pasted_rows(''), [])
+        self.assertEqual(parse_pasted_rows('\n  \n'), [])
