@@ -1,6 +1,9 @@
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from itertools import pairwise
 
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.db.models.functions import Lower
@@ -12,6 +15,7 @@ from scheduling.exceptions import (
     DayShorterThanSlotError,
     DeadlinePassedError,
     DifferentExamError,
+    DuplicateInviteError,
     DuplicateOfferError,
     InvalidDayRangeError,
     InvalidUsageLimitError,
@@ -38,6 +42,7 @@ from scheduling.exceptions import (
     SlotsAlreadyExistError,
     TeacherCannotEnrollError,
     TeacherRequiredError,
+    TooManyRowsError,
     WantedSlotFreeError,
 )
 from scheduling.models import Enrollment, Exam, ExamDay, Invite, Offer, Slot, SwapLog
@@ -81,6 +86,7 @@ def bulk_fill_slots(examday: ExamDay) -> list[Slot]:
 
 OFFER_LIFETIME = timedelta(days=1)
 MAX_ACTIVE_OFFERS = 3
+MAX_IMPORT_ROWS = 50
 
 
 def create_offer(offeror: User, offered_slot: Slot, wanted_slot: Slot) -> Offer:
@@ -445,6 +451,99 @@ def create_invite(
         usage_limit=usage_limit,
         expires_at=expires_at if expires_at else exam.slots_change_deadline,
     )
+
+
+@dataclass(frozen=True)
+class SkippedRow:
+    row: dict[str, str]
+    reason: (
+        str  # 'invalid_email' | 'duplicate' | 'already_invited' | 'already_enrolled'
+    )
+
+
+@dataclass(frozen=True)
+class PersonalInvitesResult:
+    created: list[Invite]
+    skipped: list[SkippedRow]
+
+
+def create_personal_invites(
+    exam_id: int,
+    user: User,
+    student_data: list[dict[str, str]],
+    expires_at: datetime | None = None,
+) -> PersonalInvitesResult:
+    if len(student_data) > MAX_IMPORT_ROWS:
+        raise TooManyRowsError()
+
+    if not user.is_teacher:
+        raise TeacherRequiredError()
+
+    exam = Exam.objects.get(pk=exam_id)
+
+    if exam.owner_id != user.pk:  # pyright: ignore[reportAttributeAccessIssue]
+        raise NotExamOwnerError()
+
+    if now() >= exam.slots_change_deadline:
+        raise DeadlinePassedError()
+
+    skipped: list[SkippedRow] = []
+    candidates: list[tuple[str, dict[str, str]]] = []
+    seen: set[str] = set()
+
+    for data in student_data:
+        email = (data.get('email') or '').strip().lower()
+        try:
+            validate_email(email)
+        except ValidationError:
+            skipped.append(SkippedRow(data, 'invalid_email'))
+            continue
+        if email in seen:
+            skipped.append(SkippedRow(data, 'duplicate'))
+            continue
+        seen.add(email)
+        candidates.append((email, data))
+
+    emails = [email for email, _ in candidates]
+
+    already_invited = set(
+        Invite.objects.filter(exam_id=exam_id, is_revoked=False)
+        .annotate(email_lower=Lower('email'))
+        .filter(email_lower__in=emails)
+        .values_list('email_lower', flat=True)
+    )
+    already_enrolled = set(
+        Enrollment.objects.filter(exam_id=exam_id)
+        .annotate(email_lower=Lower('user__email'))
+        .filter(email_lower__in=emails)
+        .values_list('email_lower', flat=True)
+    )
+
+    invites: list[Invite] = []
+    for email, data in candidates:
+        if email in already_enrolled:
+            skipped.append(SkippedRow(data, 'already_enrolled'))
+        elif email in already_invited:
+            skipped.append(SkippedRow(data, 'already_invited'))
+        else:
+            invites.append(
+                Invite(
+                    exam_id=exam_id,
+                    usage_limit=1,
+                    expires_at=expires_at or exam.slots_change_deadline,
+                    first_name=(data.get('first_name') or '').strip()[:100],
+                    last_name=(data.get('last_name') or '').strip()[:100],
+                    email=email,
+                )
+            )
+
+    try:
+        with transaction.atomic():
+            created = Invite.objects.bulk_create(invites)
+    except IntegrityError:
+        raise DuplicateInviteError() from None
+
+    return PersonalInvitesResult(created=created, skipped=skipped)
 
 
 def revoke_invite(invite_id: int, user: User) -> None:

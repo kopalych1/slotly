@@ -152,3 +152,15 @@ class DayHasOwnedSlotsError(ExamError):
 
 class InvalidUsageLimitError(ExamError):
     message = _('The usage limit must be a positive number')
+
+
+class InviteImportError(SchedulingError):
+    message = _('Invitations cannot be created')
+
+
+class TooManyRowsError(InviteImportError):
+    message = _('Too many rows in one import')
+
+
+class DuplicateInviteError(InviteImportError):
+    message = _('Someone on the list was already invited, please try again')

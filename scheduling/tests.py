@@ -42,17 +42,20 @@ from scheduling.exceptions import (
     SlotsAlreadyExistError,
     TeacherCannotEnrollError,
     TeacherRequiredError,
+    TooManyRowsError,
     WantedSlotFreeError,
 )
 from scheduling.forms import ExamForm
 from scheduling.models import Enrollment, Exam, ExamDay, Invite, Offer, Slot, SwapLog
 from scheduling.services import (
+    MAX_IMPORT_ROWS,
     accept_invite,
     accept_offer,
     bulk_fill_slots,
     compute_slot_starts,
     create_invite,
     create_offer,
+    create_personal_invites,
     decline_offer,
     delete_exam,
     delete_exam_day,
@@ -2293,3 +2296,134 @@ def test_add_exam_button_is_for_teachers_only(self):
     response = self.client.get(reverse('home'), follow=True)
 
     self.assertNotContains(response, new_url)
+
+
+class CreatePersonalInvitesTests(SchedulingTestCase):
+    def rows(self, *emails, **names):
+        return [{'email': e, **names} for e in emails]
+
+    def test_creates_personal_invites(self):
+        result = create_personal_invites(
+            self.exam.pk,
+            self.teacher,
+            [
+                {
+                    'email': '  Anna@Example.com ',
+                    'first_name': ' Anna ',
+                    'last_name': 'Smith',
+                },
+                {'email': 'bob@example.com'},
+            ],
+        )
+
+        self.assertEqual(len(result.created), 2)
+        self.assertEqual(result.skipped, [])
+        anna = Invite.objects.get(email='anna@example.com')
+        self.assertEqual(anna.first_name, 'Anna')
+        self.assertEqual(anna.last_name, 'Smith')
+        self.assertEqual(anna.usage_limit, 1)
+        self.assertEqual(anna.expires_at, self.exam.slots_change_deadline)
+        self.assertIsNone(anna.sent_at)
+        self.assertEqual(Invite.objects.get(email='bob@example.com').first_name, '')
+
+    def test_explicit_expiry(self):
+        expires = self.exam.slots_change_deadline - timedelta(hours=1)
+
+        result = create_personal_invites(
+            self.exam.pk, self.teacher, self.rows('a@example.com'), expires_at=expires
+        )
+
+        self.assertEqual(result.created[0].expires_at, expires)
+
+    def test_skips_invalid_email(self):
+        result = create_personal_invites(
+            self.exam.pk, self.teacher, self.rows('', 'nope', 'ok@example.com')
+        )
+
+        self.assertEqual([i.email for i in result.created], ['ok@example.com'])
+        self.assertEqual([s.reason for s in result.skipped], ['invalid_email'] * 2)
+
+    def test_skips_duplicate_in_list(self):
+        result = create_personal_invites(
+            self.exam.pk, self.teacher, self.rows('a@example.com', 'A@Example.com')
+        )
+
+        self.assertEqual(len(result.created), 1)
+        self.assertEqual([s.reason for s in result.skipped], ['duplicate'])
+
+    def test_skips_already_invited(self):
+        create_personal_invites(self.exam.pk, self.teacher, self.rows('a@example.com'))
+
+        result = create_personal_invites(
+            self.exam.pk, self.teacher, self.rows('A@example.com')
+        )
+
+        self.assertEqual(result.created, [])
+        self.assertEqual([s.reason for s in result.skipped], ['already_invited'])
+        self.assertEqual(Invite.objects.filter(exam=self.exam).count(), 1)
+
+    def test_revoked_invite_does_not_block(self):
+        first = create_personal_invites(
+            self.exam.pk, self.teacher, self.rows('a@example.com')
+        ).created[0]
+        first.is_revoked = True
+        first.save()
+
+        result = create_personal_invites(
+            self.exam.pk, self.teacher, self.rows('a@example.com')
+        )
+
+        self.assertEqual(len(result.created), 1)
+        self.assertEqual(result.skipped, [])
+
+    def test_skips_already_enrolled(self):
+        student = self.students[0]
+        student.email = 'Enrolled@Example.com'
+        student.save()
+
+        result = create_personal_invites(
+            self.exam.pk, self.teacher, self.rows('enrolled@example.com')
+        )
+
+        self.assertEqual(result.created, [])
+        self.assertEqual([s.reason for s in result.skipped], ['already_enrolled'])
+
+    def test_too_many_rows(self):
+        rows = self.rows(*[f'u{i}@example.com' for i in range(MAX_IMPORT_ROWS + 1)])
+
+        with self.assertRaises(TooManyRowsError):
+            create_personal_invites(self.exam.pk, self.teacher, rows)
+
+        self.assertEqual(Invite.objects.count(), 0)
+
+    def test_student_cannot_create(self):
+        with self.assertRaises(TeacherRequiredError):
+            create_personal_invites(
+                self.exam.pk,
+                self.students[0],
+                self.rows('a@example.com'),
+            )
+
+    def test_other_teacher_cannot_create(self):
+        other = User.objects.create_user(
+            username='other_teacher',
+            password='pass',
+            role='TCH',
+        )
+
+        with self.assertRaises(NotExamOwnerError):
+            create_personal_invites(self.exam.pk, other, self.rows('a@example.com'))
+
+        self.assertEqual(Invite.objects.count(), 0)
+
+    def test_deadline_passed(self):
+        Exam.objects.filter(pk=self.exam.pk).update(
+            slots_change_deadline=now() - timedelta(minutes=1)
+        )
+
+        with self.assertRaises(DeadlinePassedError):
+            create_personal_invites(
+                self.exam.pk, self.teacher, self.rows('a@example.com')
+            )
+
+        self.assertEqual(Invite.objects.count(), 0)
