@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Max, Min, Prefetch, Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -18,14 +19,16 @@ from scheduling.exceptions import (
     SchedulingError,
     TeacherCannotEnrollError,
 )
-from scheduling.forms import DayFormSet, ExamForm
+from scheduling.forms import DayFormSet, ExamForm, PasteInvitesForm
 from scheduling.models import Enrollment, Exam, ExamDay, Invite, Offer, Slot
+from scheduling.parsing import parse_pasted_rows
 from scheduling.services import (
     MAX_ACTIVE_OFFERS,
     accept_invite,
     accept_offer,
     create_invite,
     create_offer,
+    create_personal_invites,
     decline_offer,
     delete_exam,
     delete_exam_day,
@@ -538,3 +541,58 @@ def student_remove(request, pk: int, user_id: int):
         messages.success(request, _('Student removed'))
 
     return redirect('exam_edit', pk=exam.pk)
+
+
+@login_required
+@require_POST
+def invite_preview(request, exam_id: int):
+    exam = get_object_or_404(Exam, pk=exam_id, owner=request.user)
+
+    if not request.POST.get('text', '').strip():
+        return HttpResponse('')
+
+    form = PasteInvitesForm(request.POST)
+    result = None
+    error = None
+
+    if form.is_valid():
+        try:
+            rows = parse_pasted_rows(form.cleaned_data['text'])
+            result = create_personal_invites(exam.pk, request.user, rows, dry_run=True)
+        except SchedulingError as e:
+            error = str(e)
+    else:
+        error = _('The list is too long')
+
+    return render(
+        request,
+        'partials/invite_preview.html',
+        {'result': result, 'error': error, 'done': False},
+    )
+
+
+@login_required
+def invite_students(request, exam_id: int):
+    exam = get_object_or_404(Exam, pk=exam_id, owner=request.user)
+    result = None
+
+    if request.method == 'POST':
+        form = PasteInvitesForm(request.POST)
+
+        if form.is_valid():
+            try:
+                result = create_personal_invites(
+                    exam.pk, request.user, parse_pasted_rows(form.cleaned_data['text'])
+                )
+            except SchedulingError as e:
+                messages.error(request, str(e))
+            else:
+                form = PasteInvitesForm()
+    else:
+        form = PasteInvitesForm()
+
+    return render(
+        request,
+        'invite_students.html',
+        {'form': form, 'exam': exam, 'result': result, 'done': True},
+    )

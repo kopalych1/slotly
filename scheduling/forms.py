@@ -73,3 +73,14 @@ class DayForm(forms.Form):
 
 
 DayFormSet = formset_factory(DayForm, extra=0, can_delete=True)
+
+
+class PasteInvitesForm(forms.Form):
+    text = forms.CharField(
+        widget=forms.Textarea(
+            attrs={
+                'placeholder': 'Emma\tLaurent\temma.laurent@example.com\nLucas\tMartin\tlucas.martin@example.com\nanna@example.com'
+            }
+        ),
+        max_length=10000,
+    )

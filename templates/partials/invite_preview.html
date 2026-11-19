@@ -1,0 +1,63 @@
+{% load i18n %}
+{% if error %}
+  <p class="form-error">{{ error }}</p>
+{% elif result %}
+  <div class="preview">
+    <p class="preview__summary">
+      {% if done %}
+        {% blocktranslate with created=result.created|length skipped=result.skipped|length %}Created {{ created }}, skipped {{ skipped }}{% endblocktranslate %}
+      {% else %}
+        {% blocktranslate with created=result.created|length skipped=result.skipped|length %}Will create {{ created }}, will skip {{ skipped }}{% endblocktranslate %}
+      {% endif %}
+    </p>
+    {% if result.created and not done %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{% translate "First name" %}</th>
+              <th>{% translate "Last name" %}</th>
+              <th>{% translate "Email" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for invite in result.created %}
+              <tr>
+                <td>{{ invite.first_name }}</td>
+                <td>{{ invite.last_name }}</td>
+                <td>{{ invite.email }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+    {% if result.skipped %}
+      <div>
+        <h3>{% translate "Skipped" %}</h3>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>{% translate "First name" %}</th>
+                <th>{% translate "Last name" %}</th>
+                <th>{% translate "Email" %}</th>
+                <th>{% translate "Reason" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in result.skipped %}
+                <tr>
+                  <td>{{ s.row.first_name }}</td>
+                  <td>{{ s.row.last_name }}</td>
+                  <td>{{ s.row.email }}</td>
+                  <td><span class="reason">{{ s.reason.label }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endif %}

@@ -920,3 +920,90 @@ a.btn {
   color: var(--text);
   font: inherit;
 }
+
+/* Invite students */
+.paste-form {
+  margin-bottom: 1rem;
+}
+.paste-form textarea {
+  display: block;
+  width: 100%;
+  min-height: 10rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  resize: vertical;
+}
+.paste-form textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.paste-form .btn {
+  margin-top: 0.75rem;
+}
+
+.preview {
+  display: grid;
+  gap: 1rem;
+  transition: opacity 0.15s;
+}
+.htmx-request ~ .preview,
+.htmx-request + .preview {
+  opacity: 0.6;
+}
+.preview__summary {
+  margin: 0;
+  font-weight: 600;
+}
+.preview h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.data-table th,
+.data-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+.data-table th {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border);
+}
+.data-table tbody tr + tr td {
+  border-top: 1px solid var(--border);
+}
+.data-table td:nth-child(3) {
+  word-break: break-all;
+}
+
+.reason {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
