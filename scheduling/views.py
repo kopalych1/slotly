@@ -572,7 +572,7 @@ def invite_preview(request, exam_id: int):
 
 
 @login_required
-def invite_students(request, exam_id: int):
+def exam_people(request, exam_id: int):
     exam = get_object_or_404(Exam, pk=exam_id, owner=request.user)
     result = None
 
@@ -593,6 +593,6 @@ def invite_students(request, exam_id: int):
 
     return render(
         request,
-        'invite_students.html',
+        'exam_people.html',
         {'form': form, 'exam': exam, 'result': result, 'done': True},
     )

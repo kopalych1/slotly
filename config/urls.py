@@ -78,9 +78,9 @@ urlpatterns = [
     ),
     path('i18n/', include('django.conf.urls.i18n')),
     path(
-        'exams/<int:exam_id>/invites/',
-        scheduling.views.invite_students,
-        name='invite_students',
+        'exams/<int:exam_id>/people/',
+        scheduling.views.exam_people,
+        name='exam_people',
     ),
     path(
         'exams/<int:exam_id>/invites/preview/',
