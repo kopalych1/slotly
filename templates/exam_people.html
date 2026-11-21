@@ -1,26 +1,32 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{{ exam.name }} · Slotly{% endblock %}
 {% block content %}
-  <h1>{% blocktranslate with exam=exam.name %}Invite students to {{ exam }}{% endblocktranslate %}</h1>
-  <p>{% translate "Paste columns copied from Excel: first name, last name, email. Names are optional, one student per line." %}</p>
+  {% trans "Remove this student? Their slot will be freed and their offers cancelled." as remove_student_msg %}
+  {% include "partials/exam_header.html" with active="people" %}
   <section class="manage__section">
-    <form method="post"
-          class="paste-form"
-          hx-post="{% url 'invite_preview' exam.pk %}"
-          hx-trigger="input delay:500ms"
-          hx-target="#invite-preview">
-      {% csrf_token %}
+    <h2>{% trans "Students" %} <span class="badge">{{ students|length }}</span></h2>
+    {% for enrollment in students %}
+      <div class="student-row">
+        <div>
+          <strong>{{ enrollment.user.get_full_name|default:enrollment.user.username }}</strong>
+          <span class="muted">
+            {% if enrollment.slot %}{{ enrollment.slot.start|date:"d M, H:i" }}{% else %}{% trans "no slot yet" %}{% endif %}
+          </span>
+        </div>
+        <form method="post"
+              action="{% url 'student_remove' exam.pk enrollment.user_id %}"
+              onsubmit="return confirm('{{ remove_student_msg|escapejs }}')">
+          {% csrf_token %}
+          <button class="btn btn--small btn--danger-outline"
+                  type="submit">{% trans "Remove" %}</button>
+        </form>
+      </div>
+    {% empty %}
       <p class="muted">
-        {% translate "Paste columns copied from Excel, or type one student per line. Each line needs an email; first and last name are optional and can come in any order." %}
+        {% trans "Nobody has joined yet." %}
+        <a href="{% url 'exam_invites' exam.pk %}">{% trans "Invite students" %}</a>
       </p>
-      {{ form.text }}
-      {{ form.text.errors }}
-      <button type="submit" class="btn btn--primary">{% translate "Create invitations" %}</button>
-    </form>
+    {% endfor %}
   </section>
-  <div id="invite-preview">
-    {% if result %}
-      {% include "partials/invite_preview.html" %}
-    {% endif %}
-  </div>
 {% endblock %}

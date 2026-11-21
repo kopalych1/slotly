@@ -1,0 +1,20 @@
+{% load i18n %}
+<header class="exam-bar">
+  <h1>{% if exam %}{{ exam.name }}{% else %}{% trans "New exam" %}{% endif %}</h1>
+  {% if exam and exam.owner_id == user.pk %}
+    <nav class="exam-nav" aria-label="{% trans 'Exam sections' %}">
+      <a class="btn {% if active == 'schedule' %}btn--primary{% else %}btn--ghost{% endif %}"
+         href="{% url 'exam_detail' exam.pk %}"
+         {% if active == 'schedule' %}aria-current="page"{% endif %}>{% trans "Schedule" %}</a>
+      <a class="btn {% if active == 'edit' %}btn--primary{% else %}btn--ghost{% endif %}"
+         href="{% url 'exam_edit' exam.pk %}"
+         {% if active == 'edit' %}aria-current="page"{% endif %}>{% trans "Edit" %}</a>
+      <a class="btn {% if active == 'people' %}btn--primary{% else %}btn--ghost{% endif %}"
+         href="{% url 'exam_people' exam.pk %}"
+         {% if active == 'people' %}aria-current="page"{% endif %}>{% trans "Students" %}</a>
+      <a class="btn {% if active == 'invites' %}btn--primary{% else %}btn--ghost{% endif %}"
+         href="{% url 'exam_invites' exam.pk %}"
+         {% if active == 'invites' %}aria-current="page"{% endif %}>{% trans "Invitations" %}</a>
+    </nav>
+  {% endif %}
+</header>

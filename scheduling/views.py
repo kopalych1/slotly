@@ -24,6 +24,7 @@ from scheduling.models import Enrollment, Exam, ExamDay, Invite, Offer, Slot
 from scheduling.parsing import parse_pasted_rows
 from scheduling.services import (
     MAX_ACTIVE_OFFERS,
+    SkipReason,
     accept_invite,
     accept_offer,
     create_invite,
@@ -391,30 +392,6 @@ def exam_edit(request, pk: int | None = None):
     for day in existing_days:
         day.has_owned_slots = any(slot.owner_id for slot in day.slot_set.all())  # pyright: ignore[reportAttributeAccessIssue]
 
-    invites = []
-    students = []
-    if exam:
-        for invite in Invite.objects.filter(exam=exam).order_by('-pk'):
-            invites.append(
-                {
-                    'invite': invite,
-                    'url': settings.SITE_URL
-                    + reverse('join_invite', kwargs={'token': invite.token}),
-                    'problem': get_invite_problem(invite),
-                }
-            )
-
-        # one query for all slots, then each student gets their own slot
-        slot_by_owner = {
-            slot.owner_id: slot  # pyright: ignore[reportAttributeAccessIssue]
-            for slot in Slot.objects.filter(exam=exam, owner__isnull=False)
-        }
-        students = list(Enrollment.objects.filter(exam=exam).select_related('user'))
-        students.sort(key=lambda e: (e.user.get_full_name() or e.user.username).lower())
-        for enrollment in students:
-            enrollment.slot = slot_by_owner.get(enrollment.user_id)  # pyright: ignore[reportAttributeAccessIssue]
-    invites.sort(key=lambda item: item['problem'] is not None)
-
     return render(
         request,
         'edit_exam.html',
@@ -424,8 +401,6 @@ def exam_edit(request, pk: int | None = None):
             'day_formset': day_formset,
             'duration_locked': duration_locked,
             'existing_days': existing_days,
-            'invites': invites,
-            'students': students,
         },
     )
 
@@ -497,7 +472,7 @@ def invite_create(request, pk: int):
         usage_limit = int(request.POST.get('usage_limit', ''))
     except ValueError:
         messages.error(request, _('The usage limit must be a positive number'))
-        return redirect('exam_edit', pk=exam.pk)
+        return redirect('exam_invites', exam_id=exam.pk)
 
     try:
         create_invite(exam.pk, request.user, usage_limit)
@@ -506,7 +481,7 @@ def invite_create(request, pk: int):
     else:
         messages.success(request, _('Invite created'))
 
-    return redirect('exam_edit', pk=exam.pk)
+    return redirect('exam_invites', exam_id=exam.pk)
 
 
 @login_required
@@ -524,7 +499,7 @@ def invite_revoke(request, pk: int):
     else:
         messages.success(request, _('Invite revoked'))
 
-    return redirect('exam_edit', pk=invite.exam_id)  # pyright: ignore[reportAttributeAccessIssue]
+    return redirect('exam_invites', exam_id=invite.exam_id)  # pyright: ignore[reportAttributeAccessIssue]
 
 
 @login_required
@@ -540,7 +515,7 @@ def student_remove(request, pk: int, user_id: int):
     else:
         messages.success(request, _('Student removed'))
 
-    return redirect('exam_edit', pk=exam.pk)
+    return redirect('exam_people', exam_id=exam.pk)
 
 
 @login_required
@@ -567,12 +542,44 @@ def invite_preview(request, exam_id: int):
     return render(
         request,
         'partials/invite_preview.html',
-        {'result': result, 'error': error, 'done': False},
+        {
+            'result': result,
+            'error': error,
+            'done': False,
+            'skipped_shown': result.skipped if result else [],
+        },
     )
 
 
 @login_required
 def exam_people(request, exam_id: int):
+    exam = get_object_or_404(Exam, pk=exam_id, owner=request.user)
+
+    # one query for all slots, then each student gets their own slot
+    slot_by_owner = {
+        slot.owner_id: slot  # pyright: ignore[reportAttributeAccessIssue]
+        for slot in Slot.objects.filter(exam=exam, owner__isnull=False)
+    }
+    students = list(Enrollment.objects.filter(exam=exam).select_related('user'))
+    students.sort(key=lambda e: (e.user.get_full_name() or e.user.username).lower())
+    for enrollment in students:
+        enrollment.slot = slot_by_owner.get(enrollment.user_id)  # pyright: ignore[reportAttributeAccessIssue]
+
+    return render(request, 'exam_people.html', {'exam': exam, 'students': students})
+
+
+def _personal_status(invite: Invite, problem) -> str:
+    # A used personal invite also has a "problem" (no uses left),
+    # so "joined" must be checked before it.
+    if invite.usage_counter >= 1:
+        return 'joined'
+    if problem:
+        return 'expired'
+    return 'sent' if invite.sent_at else 'not_sent'
+
+
+@login_required
+def exam_invites(request, exam_id: int):
     exam = get_object_or_404(Exam, pk=exam_id, owner=request.user)
     result = None
 
@@ -587,12 +594,60 @@ def exam_people(request, exam_id: int):
             except SchedulingError as e:
                 messages.error(request, str(e))
             else:
-                form = PasteInvitesForm()
+                bad_lines = [
+                    '\t'.join(
+                        v
+                        for v in (
+                            s.row.get('first_name', ''),
+                            s.row.get('last_name', ''),
+                            s.row.get('email', ''),
+                        )
+                        if v
+                    )
+                    for s in result.skipped
+                    if s.reason == SkipReason.INVALID_EMAIL
+                ]
+                form = PasteInvitesForm(initial={'text': '\n'.join(bad_lines)})
     else:
         form = PasteInvitesForm()
 
+    shared = []
+    personal = []
+    for invite in Invite.objects.filter(exam=exam).order_by('pk'):
+        problem = get_invite_problem(invite)
+        if not invite.email:
+            shared.append(
+                {
+                    'invite': invite,
+                    'url': settings.SITE_URL
+                    + reverse('join_invite', kwargs={'token': invite.token}),
+                    'problem': problem,
+                }
+            )
+        elif not invite.is_revoked:
+            personal.append(
+                {'invite': invite, 'status': _personal_status(invite, problem)}
+            )
+
+    shared.reverse()  # newest link first
+    personal.sort(key=lambda item: item['status'] == 'joined')  # not joined first
+
+    skipped_shown = (
+        [s for s in result.skipped if s.reason == SkipReason.INVALID_EMAIL]
+        if result
+        else []
+    )
+
     return render(
         request,
-        'exam_people.html',
-        {'form': form, 'exam': exam, 'result': result, 'done': True},
+        'exam_invites.html',
+        {
+            'form': form,
+            'exam': exam,
+            'result': result,
+            'done': True,
+            'shared': shared,
+            'personal': personal,
+            'skipped_shown': skipped_shown,
+        },
     )

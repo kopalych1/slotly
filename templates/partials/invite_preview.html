@@ -10,29 +10,31 @@
         {% blocktranslate with created=result.created|length skipped=result.skipped|length %}Will create {{ created }}, will skip {{ skipped }}{% endblocktranslate %}
       {% endif %}
     </p>
-    {% if result.created and not done %}
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>{% translate "First name" %}</th>
-              <th>{% translate "Last name" %}</th>
-              <th>{% translate "Email" %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for invite in result.created %}
+    {% if not done %}
+      {% if result.created %}
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
               <tr>
-                <td>{{ invite.first_name }}</td>
-                <td>{{ invite.last_name }}</td>
-                <td>{{ invite.email }}</td>
+                <th>{% translate "First name" %}</th>
+                <th>{% translate "Last name" %}</th>
+                <th>{% translate "Email" %}</th>
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {% for invite in result.created %}
+                <tr>
+                  <td>{{ invite.first_name }}</td>
+                  <td>{{ invite.last_name }}</td>
+                  <td>{{ invite.email }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
     {% endif %}
-    {% if result.skipped %}
+    {% if skipped_shown %}
       <div>
         <h3>{% translate "Skipped" %}</h3>
         <div class="table-wrap">
@@ -46,7 +48,7 @@
               </tr>
             </thead>
             <tbody>
-              {% for s in result.skipped %}
+              {% for s in skipped_shown %}
                 <tr>
                   <td>{{ s.row.first_name }}</td>
                   <td>{{ s.row.last_name }}</td>

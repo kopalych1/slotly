@@ -4,13 +4,8 @@
 {% block content %}
   {% trans "Move to this slot? Your offers for your current slot will be cancelled." as move_msg %}
   {% trans "Send a swap offer for this slot? The student will see it on the site." as offer_msg %}
+  {% include "partials/exam_header.html" with active="schedule" %}
   <header class="exam-header">
-    <div class="exam-header__row">
-      <h1>{{ exam.name }}</h1>
-      {% if is_owner %}
-        <a class="btn btn--ghost" href="{% url 'exam_edit' exam.pk %}">{% trans "Edit exam" %}</a>
-      {% endif %}
-    </div>
     <p class="muted">
       {% trans "Changes allowed until" %} {{ exam.slots_change_deadline|date:"d M, H:i" }}
     </p>

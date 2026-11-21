@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load i18n static scheduling_extras %}
+{% block title %}{{ exam.name }} · Slotly{% endblock %}
+{% block content %}
+  {% trans "Revoke this invitation?" as revoke_msg %}
+  {% include "partials/exam_header.html" with active="invites" %}
+  <div class="manage manage--single">
+    <section class="manage__section" id="links">
+      <h2>{% trans "Invitation links" %}</h2>
+      <form method="post"
+            action="{% url 'invite_create' exam.pk %}"
+            class="inline-form">
+        {% csrf_token %}
+        <div class="field">
+          <label for="usage_limit">{% trans "Max uses" %}</label>
+          <input type="number"
+                 id="usage_limit"
+                 name="usage_limit"
+                 value="30"
+                 min="1"
+                 required>
+        </div>
+        <button class="btn btn--primary" type="submit">{% trans "Create link" %}</button>
+      </form>
+      {% for item in shared %}
+        <article class="invite{% if item.problem %} invite--dead{% endif %}">
+          <div class="invite__link">
+            <input type="text"
+                   readonly
+                   value="{{ item.url }}"
+                   data-invite-url
+                   aria-label="{% trans 'Invitation link' %}">
+            {% if not item.problem %}
+              <button type="button"
+                      class="btn btn--small btn--ghost"
+                      data-copy
+                      data-done="{% trans 'Copied' %}">{% trans "Copy" %}</button>
+            {% endif %}
+            {% if not item.problem %}
+              <button type="button"
+                      class="btn btn--small btn--ghost btn--icon"
+                      data-qr-open="qr-{{ item.invite.pk }}"
+                      aria-label="{% trans 'Show QR code' %}"
+                      title="{% trans 'Show QR code' %}">
+                <svg width="20"
+                     height="20"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linejoin="round"
+                     aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="3" height="3" fill="currentColor" stroke="none" />
+                  <rect x="18" y="18" width="3" height="3" fill="currentColor" stroke="none" />
+                  <rect x="18" y="14" width="3" height="2" fill="currentColor" stroke="none" />
+                </svg>
+              </button>
+            {% endif %}
+          </div>
+          <p class="invite__meta muted">
+            {{ item.invite.usage_counter }}/{{ item.invite.usage_limit|default:"∞" }} {% trans "used" %}
+            {% if item.invite.expires_at %}· {% trans "until" %} {{ item.invite.expires_at|date:"d M, H:i" }}{% endif %}
+            {% if item.problem %}· <strong>{{ item.problem }}</strong>{% endif %}
+          </p>
+          {% if not item.problem %}
+            <form method="post" action="{% url 'invite_revoke' item.invite.pk %}">
+              {% csrf_token %}
+              <button class="btn btn--small btn--danger-outline"
+                      type="submit">{% trans "Revoke" %}</button>
+            </form>
+            <dialog class="qr-dialog"
+                    id="qr-{{ item.invite.pk }}"
+                    aria-label="{% trans 'Invitation QR code' %}">
+              {% trans "Invitation QR code" as qr_title %}
+              <div class="qr-box">{% qr_svg item.url qr_title %}</div>
+              <p class="qr-dialog__text">{{ exam.name }}</p>
+              <button type="button"
+                      class="btn btn--primary"
+                      data-qr-close>{% trans "Close" %}</button>
+            </dialog>
+          {% endif %}
+        </article>
+      {% empty %}
+        <p class="muted">{% trans "No invitation links yet." %}</p>
+      {% endfor %}
+    </section>
+    <section class="manage__section" id="personal">
+      <h2>{% trans "Invite from a list" %}</h2>
+      <p class="muted">{% translate "Paste columns copied from Excel, or type one student per line. An email is required; first and last name are optional and can come in any order." %}</p>
+      <form method="post"
+            class="paste-form"
+            hx-post="{% url 'invite_preview' exam.pk %}"
+            hx-trigger="input delay:500ms"
+            hx-target="#invite-preview">
+        {% csrf_token %}
+        {{ form.text }}
+        {{ form.text.errors }}
+        <div id="invite-preview">
+          {% if result %}
+            {% include "partials/invite_preview.html" %}
+          {% endif %}
+        </div>
+        <button type="submit" class="btn btn--primary">{% translate "Create invitations" %}</button>
+      </form>
+      <h3>{% trans "Invited students" %} <span class="badge">{{ personal|length }}</span></h3>
+      {% if personal %}
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>{% trans "Student" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in personal %}
+                <tr>
+                  <td>
+                    {% if item.invite.first_name or item.invite.last_name %}
+                      <strong>{{ item.invite.first_name }} {{ item.invite.last_name }}</strong>
+                      <br>
+                      <span class="muted cell-email">{{ item.invite.email }}</span>
+                    {% else %}
+                      <span class="cell-email">{{ item.invite.email }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if item.status == "joined" %}
+                      <span class="pill pill--ok">{% trans "Joined" %}</span>
+                    {% elif item.status == "expired" %}
+                      <span class="pill pill--danger">{% trans "Expired" %}</span>
+                    {% elif item.status == "sent" %}
+                      <span class="pill">{% blocktranslate with date=item.invite.sent_at|date:"d M" %}Sent {{ date }}{% endblocktranslate %}</span>
+                    {% else %}
+                      <span class="pill">{% trans "Not sent" %}</span>
+                    {% endif %}
+                  </td>
+                  <td class="data-table__actions">
+                    {% if item.status != "joined" %}
+                      <form method="post"
+                            action="{% url 'invite_revoke' item.invite.pk %}"
+                            onsubmit="return confirm('{{ revoke_msg|escapejs }}')">
+                        {% csrf_token %}
+                        <button class="btn btn--small btn--danger-outline"
+                                type="submit">{% trans "Revoke" %}</button>
+                      </form>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="muted">{% trans "No personal invitations yet." %}</p>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}
+{% block scripts %}
+  <script src="{% static 'js/invites.js' %}" defer></script>
+{% endblock %}

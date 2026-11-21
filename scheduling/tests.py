@@ -2012,16 +2012,17 @@ class InviteCreateViewTests(SchedulingTestCase):
     def setUp(self):
         self.url = reverse('invite_create', kwargs={'pk': self.exam.pk})
         self.edit_url = reverse('exam_edit', kwargs={'pk': self.exam.pk})
+        self.invites_url = reverse('exam_invites', args=[self.exam.pk])
         self.other = User.objects.create_user(
             username='other', password='pass', role=User.Role.TEACHER
         )
 
-    def test_owner_creates_invite_and_returns_to_editor(self):
+    def test_owner_creates_invite_and_returns_to_invitations(self):
         self.client.force_login(self.teacher)
 
         response = self.client.post(self.url, {'usage_limit': '30'})
 
-        self.assertRedirects(response, self.edit_url, fetch_redirect_response=False)
+        self.assertRedirects(response, self.invites_url, fetch_redirect_response=False)
         invite = Invite.objects.get(exam=self.exam)
         self.assertEqual(invite.usage_limit, 30)
         self.assertEqual(message_levels(response), ['success'])
@@ -2036,7 +2037,7 @@ class InviteCreateViewTests(SchedulingTestCase):
                 response = self.client.post(self.url, {'usage_limit': bad})
 
                 self.assertRedirects(
-                    response, self.edit_url, fetch_redirect_response=False
+                    response, self.invites_url, fetch_redirect_response=False
                 )
                 self.assertEqual(message_levels(response), ['error'])
 
@@ -2086,16 +2087,17 @@ class InviteRevokeViewTests(SchedulingTestCase):
         self.invite = Invite.objects.create(exam=self.exam, usage_limit=5)
         self.url = reverse('invite_revoke', kwargs={'pk': self.invite.pk})
         self.edit_url = reverse('exam_edit', kwargs={'pk': self.exam.pk})
+        self.invites_url = reverse('exam_invites', args=[self.exam.pk])
         self.other = User.objects.create_user(
             username='other', password='pass', role=User.Role.TEACHER
         )
 
-    def test_owner_revokes_and_returns_to_editor(self):
+    def test_owner_revokes_and_returns_to_invitations(self):
         self.client.force_login(self.teacher)
 
         response = self.client.post(self.url)
 
-        self.assertRedirects(response, self.edit_url, fetch_redirect_response=False)
+        self.assertRedirects(response, self.invites_url, fetch_redirect_response=False)
         self.invite.refresh_from_db()
         self.assertTrue(self.invite.is_revoked)
         self.assertEqual(message_levels(response), ['success'])
@@ -2106,7 +2108,7 @@ class InviteRevokeViewTests(SchedulingTestCase):
 
         response = self.client.post(self.url)
 
-        self.assertRedirects(response, self.edit_url, fetch_redirect_response=False)
+        self.assertRedirects(response, self.invites_url, fetch_redirect_response=False)
         self.invite.refresh_from_db()
         self.assertTrue(self.invite.is_revoked)
 
@@ -2150,6 +2152,7 @@ class StudentRemoveViewTests(SchedulingTestCase):
             'student_remove', kwargs={'pk': self.exam.pk, 'user_id': self.student.pk}
         )
         self.edit_url = reverse('exam_edit', kwargs={'pk': self.exam.pk})
+        self.people_url = reverse('exam_people', args=[self.exam.pk])
         self.other = User.objects.create_user(
             username='other', password='pass', role=User.Role.TEACHER
         )
@@ -2159,18 +2162,18 @@ class StudentRemoveViewTests(SchedulingTestCase):
 
         response = self.client.post(self.url)
 
-        self.assertRedirects(response, self.edit_url, fetch_redirect_response=False)
+        self.assertRedirects(response, self.people_url, fetch_redirect_response=False)
         self.assertFalse(
             Enrollment.objects.filter(exam=self.exam, user=self.student).exists()
         )
         self.assertIsNone(self.owner_of(self.slots[0]))
         self.assertEqual(message_levels(response), ['success'])
 
-    def test_editor_no_longer_lists_the_removed_student(self):
+    def test_people_page_no_longer_lists_the_removed_student(self):
         self.client.force_login(self.teacher)
         self.client.post(self.url)
 
-        response = self.client.get(self.edit_url)
+        response = self.client.get(self.people_url)
 
         listed = {e.user_id for e in response.context['students']}
         self.assertNotIn(self.student.pk, listed)
@@ -2197,7 +2200,7 @@ class StudentRemoveViewTests(SchedulingTestCase):
 
         response = self.client.post(url)
 
-        self.assertRedirects(response, self.edit_url, fetch_redirect_response=False)
+        self.assertRedirects(response, self.people_url, fetch_redirect_response=False)
         self.assertEqual(message_levels(response), ['error'])
         self.assertEqual(Enrollment.objects.filter(exam=self.exam).count(), 3)
 
@@ -2241,12 +2244,12 @@ class QrCodeTests(SchedulingTestCase):
 
         self.assertNotEqual(first, second)
 
-    def test_editor_shows_qr_only_for_live_invites(self):
+    def test_invitations_page_shows_qr_only_for_live_invites(self):
         live = Invite.objects.create(exam=self.exam, usage_limit=5)
         dead = Invite.objects.create(exam=self.exam, is_revoked=True)
         self.client.force_login(self.teacher)
 
-        response = self.client.get(reverse('exam_edit', kwargs={'pk': self.exam.pk}))
+        response = self.client.get(reverse('exam_invites', args=[self.exam.pk]))
 
         self.assertContains(response, f'id="qr-{live.pk}"')
         self.assertNotContains(response, f'id="qr-{dead.pk}"')
