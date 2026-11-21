@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 16:18+0100\n"
+"POT-Creation-Date: 2026-11-21 05:18+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19,9 +19,9 @@ msgstr ""
 
 #: accounts/models.py:8
 msgid "Teacher"
-msgstr "Docent"
+msgstr "Leerkracht"
 
-#: accounts/models.py:9
+#: accounts/models.py:9 templates/exam_invites.html:114
 msgid "Student"
 msgstr "Student"
 
@@ -37,11 +37,11 @@ msgstr "De gebruiker is niet ingeschreven voor dit examen"
 msgid "Slots cannot be generated for this day"
 msgstr "Voor deze dag kunnen geen tijdsloten worden aangemaakt"
 
-#: scheduling/exceptions.py:22 scheduling/models.py:71
+#: scheduling/exceptions.py:22 scheduling/models.py:73
 msgid "Exam day must end after it starts"
 msgstr "De examendag moet eindigen na het begintijdstip"
 
-#: scheduling/exceptions.py:26 scheduling/models.py:73
+#: scheduling/exceptions.py:26 scheduling/models.py:75
 msgid "Exam day is shorter than a single slot"
 msgstr "De examendag is korter dan één tijdslot"
 
@@ -143,7 +143,7 @@ msgstr "Deze uitnodiging kan niet meer worden gebruikt"
 
 #: scheduling/exceptions.py:126
 msgid "Teachers cannot join an exam as students"
-msgstr "Docenten kunnen niet als student deelnemen aan een examen"
+msgstr "Leerkrachten kunnen niet als student deelnemen aan een examen"
 
 #: scheduling/exceptions.py:130
 msgid "The exam cannot be saved"
@@ -151,7 +151,7 @@ msgstr "Het examen kan niet worden opgeslagen"
 
 #: scheduling/exceptions.py:134
 msgid "Only teachers can manage exams"
-msgstr "Alleen docenten kunnen examens beheren"
+msgstr "Alleen leerkrachten kunnen examens beheren"
 
 #: scheduling/exceptions.py:138
 msgid "You are not the owner of this exam"
@@ -170,9 +170,21 @@ msgstr "Examendagen mogen elkaar niet overlappen"
 msgid "Some slots of this day are already taken by students"
 msgstr "Sommige tijdsloten op deze dag zijn al bezet door studenten"
 
-#: scheduling/exceptions.py:154 scheduling/views.py:490
+#: scheduling/exceptions.py:154 scheduling/views.py:474
 msgid "The usage limit must be a positive number"
 msgstr "De gebruiksbeperking moet een positief getal zijn"
+
+#: scheduling/exceptions.py:158
+msgid "Invitations cannot be created"
+msgstr "Uitnodigingen kunnen niet worden aangemaakt"
+
+#: scheduling/exceptions.py:162
+msgid "Too many rows in one import"
+msgstr "Te veel rijen in één import"
+
+#: scheduling/exceptions.py:166
+msgid "Someone on the list was already invited, please try again"
+msgstr "Iemand op de lijst is al uitgenodigd, probeer het opnieuw"
 
 #: scheduling/forms.py:17
 msgid "Name"
@@ -198,449 +210,382 @@ msgstr "Van"
 msgid "To"
 msgstr "Tot"
 
-#: scheduling/forms.py:68 templates/edit_exam.html:72
+#: scheduling/forms.py:68 templates/edit_exam.html:57
 msgid "The day must end after it starts"
 msgstr "De dag moet eindigen na het begintijdstip"
 
-#: scheduling/models.py:23 scheduling/models.py:232
+#: scheduling/models.py:25 scheduling/models.py:234
 msgid "Exam name"
 msgstr "Examenaam"
 
-#: scheduling/models.py:26 scheduling/models.py:93
+#: scheduling/models.py:28 scheduling/models.py:95
 msgid "Owner"
 msgstr "Eigenaar"
 
-#: scheduling/models.py:31
+#: scheduling/models.py:33
 msgid "Slot time duration"
 msgstr "Duur van een tijdslot"
 
-#: scheduling/models.py:32
+#: scheduling/models.py:34
 msgid "time in minutes"
 msgstr "tijd in minuten"
 
-#: scheduling/models.py:36
+#: scheduling/models.py:38
 msgid "Slots change deadline"
 msgstr "Deadline voor het wijzigen van tijdsloten"
 
-#: scheduling/models.py:39 scheduling/models.py:56 scheduling/models.py:85
-#: scheduling/models.py:247 scheduling/models.py:281
+#: scheduling/models.py:41 scheduling/models.py:58 scheduling/models.py:87
+#: scheduling/models.py:249 scheduling/models.py:283
 msgid "Exam"
 msgstr "Examen"
 
-#: scheduling/models.py:40 templates/base.html:19 templates/home.html:3
-#: templates/home.html:5
+#: scheduling/models.py:42 templates/home.html:3 templates/home.html:6
 msgid "Exams"
 msgstr "Examens"
 
-#: scheduling/models.py:45
+#: scheduling/models.py:47
 msgid "Exam owner must be a teacher"
-msgstr "De eigenaar van het examen moet een docent zijn"
+msgstr "De eigenaar van het examen moet een leerkracht zijn"
 
-#: scheduling/models.py:58
+#: scheduling/models.py:60
 msgid "Exam day start datetime"
 msgstr "Startdatum en -tijd van de examendag"
 
-#: scheduling/models.py:59
+#: scheduling/models.py:61
 msgid "Exam day end datetime"
 msgstr "Einddatum en -tijd van de examendag"
 
-#: scheduling/models.py:62
+#: scheduling/models.py:64
 msgid "ExamDay"
 msgstr "Examendag"
 
-#: scheduling/models.py:63
+#: scheduling/models.py:65
 msgid "ExamDays"
 msgstr "Examendagen"
 
-#: scheduling/models.py:88
+#: scheduling/models.py:90
 msgid "Exam day"
 msgstr "Examendag"
 
-#: scheduling/models.py:90
+#: scheduling/models.py:92
 msgid "Slot start time"
 msgstr "Starttijd van het tijdslot"
 
-#: scheduling/models.py:101
+#: scheduling/models.py:103
 msgid "Slot"
 msgstr "Tijdslot"
 
-#: scheduling/models.py:102 templates/edit_exam.html:70
+#: scheduling/models.py:104 templates/edit_exam.html:55
 msgid "Slots"
 msgstr "Tijdsloten"
 
-#: scheduling/models.py:119
+#: scheduling/models.py:121
 msgid "Slot owner must be a student"
 msgstr "De eigenaar van het tijdslot moet een student zijn"
 
-#: scheduling/models.py:134
+#: scheduling/models.py:136
 msgid "Awaiting"
 msgstr "In afwachting"
 
-#: scheduling/models.py:135
+#: scheduling/models.py:137
 msgid "Accepted"
 msgstr "Geaccepteerd"
 
-#: scheduling/models.py:136
+#: scheduling/models.py:138
 msgid "Canceled"
 msgstr "Geannuleerd"
 
-#: scheduling/models.py:137 templates/exam_detail.html:126
+#: scheduling/models.py:139 templates/exam_detail.html:121
+#: templates/exam_invites.html:135
 msgid "Expired"
 msgstr "Verlopen"
 
-#: scheduling/models.py:138
+#: scheduling/models.py:140
 msgid "Declined"
 msgstr "Afgewezen"
 
-#: scheduling/models.py:139
+#: scheduling/models.py:141
 msgid "Withdrawn"
 msgstr "Ingetrokken"
 
-#: scheduling/models.py:143
+#: scheduling/models.py:145
 msgid "Offeror"
 msgstr "Aanbieder"
 
-#: scheduling/models.py:150
+#: scheduling/models.py:152
 msgid "Offered slot"
 msgstr "Aangeboden tijdslot"
 
-#: scheduling/models.py:156
+#: scheduling/models.py:158
 msgid "Wanted slot"
 msgstr "Gewenst tijdslot"
 
-#: scheduling/models.py:160
+#: scheduling/models.py:162 templates/exam_invites.html:115
 msgid "Status"
 msgstr "Status"
 
-#: scheduling/models.py:162 scheduling/models.py:255
+#: scheduling/models.py:164 scheduling/models.py:257
 msgid "Created at"
 msgstr "Aangemaakt op"
 
-#: scheduling/models.py:163 scheduling/models.py:310
+#: scheduling/models.py:165 scheduling/models.py:320
 msgid "Expires at"
 msgstr "Verloopt op"
 
-#: scheduling/models.py:166 scheduling/models.py:196
+#: scheduling/models.py:168 scheduling/models.py:198
 msgid "Offer"
 msgstr "Voorstel"
 
-#: scheduling/models.py:167
+#: scheduling/models.py:169
 msgid "Offers"
 msgstr "Voorstellen"
 
-#: scheduling/models.py:184
+#: scheduling/models.py:186
 msgid "Offeror must be a student"
 msgstr "De aanbieder moet een student zijn"
 
-#: scheduling/models.py:200
+#: scheduling/models.py:202
 msgid "Sender name"
 msgstr "Naam van de verzender"
 
-#: scheduling/models.py:201
+#: scheduling/models.py:203
 msgid "Receiver name"
 msgstr "Naam van de ontvanger"
 
-#: scheduling/models.py:204
+#: scheduling/models.py:206
 msgid "Sender"
 msgstr "Verzender"
 
-#: scheduling/models.py:211
+#: scheduling/models.py:213
 msgid "Receiver"
 msgstr "Ontvanger"
 
-#: scheduling/models.py:218
+#: scheduling/models.py:220
 msgid "Sender slot"
 msgstr "Tijdslot van de verzender"
 
-#: scheduling/models.py:225
+#: scheduling/models.py:227
 msgid "Receiver slot"
 msgstr "Tijdslot van de ontvanger"
 
-#: scheduling/models.py:230
+#: scheduling/models.py:232
 msgid "Sender slot time"
 msgstr "Tijdstip van het tijdslot van de verzender"
 
-#: scheduling/models.py:231
+#: scheduling/models.py:233
 msgid "Receiver slot time"
 msgstr "Tijdstip van het tijdslot van de ontvanger"
 
-#: scheduling/models.py:233
+#: scheduling/models.py:235
 msgid "Exchange time"
 msgstr "Tijdstip van de ruil"
 
-#: scheduling/models.py:236
+#: scheduling/models.py:238
 msgid "SwapLog"
 msgstr "Ruilgeschiedenis"
 
-#: scheduling/models.py:237
+#: scheduling/models.py:239
 msgid "SwapLogs"
 msgstr "Ruilgeschiedenis"
 
-#: scheduling/models.py:251
+#: scheduling/models.py:253
 msgid "User"
 msgstr "Gebruiker"
 
-#: scheduling/models.py:258
+#: scheduling/models.py:260
 msgid "Enrollment"
 msgstr "Inschrijving"
 
-#: scheduling/models.py:259
+#: scheduling/models.py:261
 msgid "Enrollments"
 msgstr "Inschrijvingen"
 
-#: scheduling/models.py:272
+#: scheduling/models.py:274
 msgid "Only students can be enrolled in an exam"
 msgstr "Alleen studenten kunnen worden ingeschreven voor een examen"
 
-#: scheduling/models.py:284
+#: scheduling/models.py:286
 msgid "Token"
 msgstr "Token"
 
-#: scheduling/models.py:292
-msgid "Student name"
-msgstr "Naam van de student"
+#: scheduling/models.py:294
+msgid "Student first name"
+msgstr "Voornaam van de student"
 
-#: scheduling/models.py:300
+#: scheduling/models.py:302
+msgid "Student last name"
+msgstr "Achternaam van de student"
+
+#: scheduling/models.py:310
 msgid "Student email"
 msgstr "E-mailadres van de student"
 
-#: scheduling/models.py:307
+#: scheduling/models.py:317
 msgid "Usage counter"
 msgstr "Gebruiksteller"
 
-#: scheduling/models.py:309
+#: scheduling/models.py:319
 msgid "Usage limit"
 msgstr "Gebruiksbeperking"
 
-#: scheduling/models.py:311
+#: scheduling/models.py:321
 msgid "Is revoked"
 msgstr "Is ingetrokken"
 
-#: scheduling/models.py:314
+#: scheduling/models.py:322
+msgid "Sent at"
+msgstr "Verzonden op"
+
+#: scheduling/models.py:325
 msgid "Invite"
 msgstr "Uitnodiging"
 
-#: scheduling/models.py:315
+#: scheduling/models.py:326
 msgid "Invites"
 msgstr "Uitnodigingen"
 
-#: scheduling/views.py:139
+#: scheduling/services.py:458
+msgid "Invalid email"
+msgstr "Ongeldig e-mailadres"
+
+#: scheduling/services.py:459
+msgid "Duplicate in the list"
+msgstr "Dubbel in de lijst"
+
+#: scheduling/services.py:460
+msgid "Already invited"
+msgstr "Al uitgenodigd"
+
+#: scheduling/services.py:461
+msgid "Already joined this exam"
+msgstr "Neemt al deel aan dit examen"
+
+#: scheduling/views.py:143
 msgid "Slot successfully taken"
 msgstr "Tijdslot succesvol gekozen"
 
-#: scheduling/views.py:154
+#: scheduling/views.py:158
 msgid "Slot successfully released"
 msgstr "Tijdslot succesvol vrijgegeven"
 
-#: scheduling/views.py:168
+#: scheduling/views.py:172
 msgid "You need a slot to offer a swap"
 msgstr "Je moet een tijdslot hebben om een ruilvoorstel te doen"
 
-#: scheduling/views.py:176
+#: scheduling/views.py:180
 msgid "Offer sent successfully"
 msgstr "Voorstel succesvol verzonden"
 
-#: scheduling/views.py:194
+#: scheduling/views.py:198
 #, python-format
 msgid "Swapped: your new slot is %(time)s"
 msgstr "Geruild: je nieuwe tijdslot is %(time)s"
 
-#: scheduling/views.py:211
+#: scheduling/views.py:215
 msgid "Offer declined"
 msgstr "Voorstel afgewezen"
 
-#: scheduling/views.py:226
+#: scheduling/views.py:230
 msgid "Offer withdrawn"
 msgstr "Voorstel ingetrokken"
 
-#: scheduling/views.py:271 scheduling/views.py:307
+#: scheduling/views.py:275 scheduling/views.py:311
 msgid "Invite accepted"
 msgstr "Uitnodiging geaccepteerd"
 
-#: scheduling/views.py:369
+#: scheduling/views.py:379
 msgid "Exam saved"
 msgstr "Examen opgeslagen"
 
-#: scheduling/views.py:435
+#: scheduling/views.py:419
 msgid "Day deleted"
 msgstr "Dag verwijderd"
 
-#: scheduling/views.py:464
+#: scheduling/views.py:448
 msgid "The name does not match. Nothing was deleted."
 msgstr "De naam komt niet overeen. Er is niets verwijderd."
 
-#: scheduling/views.py:471
+#: scheduling/views.py:455
 msgid "Exam deleted"
 msgstr "Examen verwijderd"
 
-#: scheduling/views.py:498
+#: scheduling/views.py:482
 msgid "Invite created"
 msgstr "Uitnodiging aangemaakt"
 
-#: scheduling/views.py:516
+#: scheduling/views.py:500
 msgid "Invite revoked"
 msgstr "Uitnodiging ingetrokken"
 
-#: scheduling/views.py:532
+#: scheduling/views.py:516
 msgid "Student removed"
 msgstr "Student verwijderd"
 
-#: templates/base.html:18
-msgid "Main"
-msgstr "Startpagina"
+#: scheduling/views.py:540
+msgid "The list is too long"
+msgstr "De lijst is te lang"
 
 #: templates/base.html:21
-msgid "Add exam"
-msgstr "Examen toevoegen"
-
-#: templates/base.html:27
 msgid "Notifications"
 msgstr "Meldingen"
 
-#: templates/base.html:45
+#: templates/base.html:39
 msgid "Log out"
 msgstr "Uitloggen"
 
-#: templates/base.html:56
+#: templates/base.html:50
 msgid "Language"
 msgstr "Taal"
 
-#: templates/edit_exam.html:4 templates/edit_exam.html:20
+#: templates/edit_exam.html:4 templates/partials/exam_header.html:3
 msgid "New exam"
 msgstr "Nieuw examen"
 
 #: templates/edit_exam.html:6
 msgid ""
-"Delete this day and all its free slots? Unsaved changes on this page will be "
-"lost."
+"Delete this day and all its free slots? Unsaved changes on this page will be"
+" lost."
 msgstr ""
 "Deze dag en al de vrije tijdsloten verwijderen? Niet-opgeslagen wijzigingen "
 "op deze pagina gaan verloren."
 
-#: templates/edit_exam.html:7
-msgid ""
-"Remove this student? Their slot will be freed and their offers cancelled."
-msgstr ""
-"Deze student verwijderen? Hun tijdslot wordt vrijgegeven en hun voorstellen "
-"worden geannuleerd."
-
-#: templates/edit_exam.html:18 templates/exam_detail.html:11
-msgid "Edit exam"
-msgstr "Examen bewerken"
-
-#: templates/edit_exam.html:25
-msgid "View exam"
-msgstr "Examen bekijken"
-
-#: templates/edit_exam.html:41
+#: templates/edit_exam.html:26
 msgid "min"
 msgstr "min"
 
-#: templates/edit_exam.html:51
+#: templates/edit_exam.html:36
 msgid "Save"
 msgstr "Opslaan"
 
-#: templates/edit_exam.html:62
+#: templates/edit_exam.html:47
 msgid "Slot length is locked because slots already exist."
 msgstr "Tijdslotduur is vergrendeld omdat er al tijdsloten bestaan."
 
-#: templates/edit_exam.html:71
+#: templates/edit_exam.html:56
 msgid "Shorter than one slot"
 msgstr "Korter dan één tijdslot"
 
-#: templates/edit_exam.html:73
+#: templates/edit_exam.html:58
 msgid "Enter the start and end time to see the slots"
 msgstr "Voer de start- en eindtijd in om de tijdsloten te bekijken"
 
-#: templates/edit_exam.html:85 templates/exam_detail.html:49
+#: templates/edit_exam.html:70 templates/exam_detail.html:44
 msgid "Free"
 msgstr "Vrij"
 
-#: templates/edit_exam.html:97
+#: templates/edit_exam.html:82
 msgid "Delete day"
 msgstr "Dag verwijderen"
 
-#: templates/edit_exam.html:100
+#: templates/edit_exam.html:85
 msgid "Has booked slots"
 msgstr "Heeft geboekte tijdsloten"
 
-#: templates/edit_exam.html:110
+#: templates/edit_exam.html:95
 msgid "Add day"
 msgstr "Dag toevoegen"
 
-#: templates/edit_exam.html:121
-msgid "Invitations"
-msgstr "Uitnodigingen"
-
-#: templates/edit_exam.html:127
-msgid "Max uses"
-msgstr "Max. gebruik"
-
-#: templates/edit_exam.html:135
-msgid "Create link"
-msgstr "Link aanmaken"
-
-#: templates/edit_exam.html:144
-msgid "Invitation link"
-msgstr "Uitnodigingslink"
-
-#: templates/edit_exam.html:149
-msgid "Copied"
-msgstr "Gekopieerd"
-
-#: templates/edit_exam.html:149
-msgid "Copy"
-msgstr "Kopiëren"
-
-#: templates/edit_exam.html:155 templates/edit_exam.html:156
-msgid "Show QR code"
-msgstr "QR-code weergeven"
-
-#: templates/edit_exam.html:176
-msgid "used"
-msgstr "gebruikt"
-
-#: templates/edit_exam.html:177
-msgid "until"
-msgstr "tot"
-
-#: templates/edit_exam.html:184
-msgid "Revoke"
-msgstr "Intrekken"
-
-#: templates/edit_exam.html:188 templates/edit_exam.html:189
-msgid "Invitation QR code"
-msgstr "Uitnodigings-QR-code"
-
-#: templates/edit_exam.html:194
-msgid "Close"
-msgstr "Sluiten"
-
-#: templates/edit_exam.html:199
-msgid "No invitation links yet."
-msgstr "Nog geen uitnodigingslinks."
-
-#: templates/edit_exam.html:203
-msgid "Students"
-msgstr "Studenten"
-
-#: templates/edit_exam.html:209
-msgid "no slot yet"
-msgstr "nog geen tijdslot"
-
-#: templates/edit_exam.html:217
-msgid "Remove"
-msgstr "Verwijderen"
-
-#: templates/edit_exam.html:221
-msgid "Nobody has joined yet. Share an invitation link."
-msgstr "Nog niemand heeft deelgenomen. Deel een uitnodigingslink."
-
-#: templates/edit_exam.html:226
-msgid "Save the exam first, then you can create invitation links."
-msgstr "Sla eerst het examen op, daarna kun je uitnodigingslinks aanmaken."
-
-#: templates/edit_exam.html:231 templates/exam_delete.html:3
+#: templates/edit_exam.html:106 templates/exam_delete.html:3
 #: templates/exam_delete.html:6 templates/exam_delete.html:33
 msgid "Delete exam"
 msgstr "Examen verwijderen"
@@ -693,7 +638,8 @@ msgid "Cancel"
 msgstr "Annuleren"
 
 #: templates/exam_detail.html:5
-msgid "Move to this slot? Your offers for your current slot will be cancelled."
+msgid ""
+"Move to this slot? Your offers for your current slot will be cancelled."
 msgstr ""
 "Naar dit tijdslot verplaatsen? Je voorstellen voor je huidige tijdslot "
 "worden geannuleerd."
@@ -704,22 +650,22 @@ msgstr ""
 "Een ruilvoorstel voor dit tijdslot versturen? De student ziet het op de "
 "website."
 
-#: templates/exam_detail.html:15
+#: templates/exam_detail.html:10
 msgid "Changes allowed until"
 msgstr "Wijzigingen mogelijk tot"
 
-#: templates/exam_detail.html:18
+#: templates/exam_detail.html:13
 msgid "Changes are closed for this exam."
 msgstr "Wijzigingen voor dit examen zijn niet meer mogelijk."
 
-#: templates/exam_detail.html:24
+#: templates/exam_detail.html:19
 #, python-format
 msgid "You can send %(counter)s more offer."
 msgid_plural "You can send %(counter)s more offers."
 msgstr[0] "Je kunt nog %(counter)s voorstel versturen."
 msgstr[1] "Je kunt nog %(counter)s voorstellen versturen."
 
-#: templates/exam_detail.html:26
+#: templates/exam_detail.html:21
 msgid ""
 "You have reached the limit of active offers. Wait for answers or withdraw "
 "any offer"
@@ -727,77 +673,202 @@ msgstr ""
 "Je hebt het maximumaantal actieve voorstellen bereikt. Wacht op antwoorden "
 "of trek een voorstel in"
 
-#: templates/exam_detail.html:51
+#: templates/exam_detail.html:46
 msgid "You"
 msgstr "Jij"
 
-#: templates/exam_detail.html:56
+#: templates/exam_detail.html:51
 msgid "Wants to swap with you"
 msgstr "Wil met je ruilen"
 
-#: templates/exam_detail.html:67
+#: templates/exam_detail.html:62
 msgid "Move here"
 msgstr "Verplaats hierheen"
 
-#: templates/exam_detail.html:69
+#: templates/exam_detail.html:64
 msgid "Take"
 msgstr "Kiezen"
 
-#: templates/exam_detail.html:77
+#: templates/exam_detail.html:72
 msgid "Release"
 msgstr "Vrijgeven"
 
-#: templates/exam_detail.html:80
+#: templates/exam_detail.html:75
 #, python-format
 msgid "Swap your %(mine)s slot for %(theirs)s?"
 msgstr "Je tijdslot %(mine)s ruilen voor %(theirs)s?"
 
-#: templates/exam_detail.html:86
+#: templates/exam_detail.html:81
 msgid "Accept swap"
 msgstr "Ruil accepteren"
 
-#: templates/exam_detail.html:91
+#: templates/exam_detail.html:86
 msgid "Decline"
 msgstr "Afwijzen"
 
-#: templates/exam_detail.html:97
+#: templates/exam_detail.html:92
 msgid "Withdraw offer"
 msgstr "Voorstel intrekken"
 
-#: templates/exam_detail.html:105
+#: templates/exam_detail.html:100
 msgid "Swap"
 msgstr "Ruilen"
 
-#: templates/exam_detail.html:116
+#: templates/exam_detail.html:111
 msgid "No exam days yet."
 msgstr "Er zijn nog geen examendagen."
 
-#: templates/exam_detail.html:121
+#: templates/exam_detail.html:116
 msgid "Your offer history"
 msgstr "Je voorstelgeschiedenis"
 
-#: templates/exam_detail.html:124
+#: templates/exam_detail.html:119
 #, python-format
 msgid "For the %(t)s slot"
 msgstr "Voor het tijdslot %(t)s"
 
-#: templates/home.html:9
+#: templates/exam_invites.html:5
+msgid "Revoke this invitation?"
+msgstr "Deze uitnodiging intrekken?"
+
+#: templates/exam_invites.html:9
+msgid "Invitation links"
+msgstr "Uitnodigingslinks"
+
+#: templates/exam_invites.html:15
+msgid "Max uses"
+msgstr "Max. gebruik"
+
+#: templates/exam_invites.html:23
+msgid "Create link"
+msgstr "Link aanmaken"
+
+#: templates/exam_invites.html:32
+msgid "Invitation link"
+msgstr "Uitnodigingslink"
+
+#: templates/exam_invites.html:37
+msgid "Copied"
+msgstr "Gekopieerd"
+
+#: templates/exam_invites.html:37
+msgid "Copy"
+msgstr "Kopiëren"
+
+#: templates/exam_invites.html:43 templates/exam_invites.html:44
+msgid "Show QR code"
+msgstr "QR-code weergeven"
+
+#: templates/exam_invites.html:64
+msgid "used"
+msgstr "gebruikt"
+
+#: templates/exam_invites.html:65
+msgid "until"
+msgstr "tot"
+
+#: templates/exam_invites.html:72 templates/exam_invites.html:149
+msgid "Revoke"
+msgstr "Intrekken"
+
+#: templates/exam_invites.html:76 templates/exam_invites.html:77
+msgid "Invitation QR code"
+msgstr "Uitnodigings-QR-code"
+
+#: templates/exam_invites.html:82
+msgid "Close"
+msgstr "Sluiten"
+
+#: templates/exam_invites.html:87
+msgid "No invitation links yet."
+msgstr "Nog geen uitnodigingslinks."
+
+#: templates/exam_invites.html:91
+msgid "Invite from a list"
+msgstr "Uitnodigen via een lijst"
+
+#: templates/exam_invites.html:92
+msgid ""
+"Paste columns copied from Excel, or type one student per line. An email is "
+"required; first and last name are optional and can come in any order."
+msgstr ""
+"Plak kolommen uit Excel, of typ één student per regel. Een e-mailadres is "
+"verplicht; voor- en achternaam zijn optioneel en mogen in willekeurige "
+"volgorde staan."
+
+#: templates/exam_invites.html:106
+msgid "Create invitations"
+msgstr "Uitnodigingen aanmaken"
+
+#: templates/exam_invites.html:108
+msgid "Invited students"
+msgstr "Uitgenodigde studenten"
+
+#: templates/exam_invites.html:133
+msgid "Joined"
+msgstr "Deelgenomen"
+
+#: templates/exam_invites.html:137
+#, python-format
+msgid "Sent %(date)s"
+msgstr "Verzonden %(date)s"
+
+#: templates/exam_invites.html:139
+msgid "Not sent"
+msgstr "Niet verzonden"
+
+#: templates/exam_invites.html:159
+msgid "No personal invitations yet."
+msgstr "Nog geen persoonlijke uitnodigingen."
+
+#: templates/exam_people.html:5
+msgid ""
+"Remove this student? Their slot will be freed and their offers cancelled."
+msgstr ""
+"Deze student verwijderen? Het tijdslot wordt vrijgegeven en de voorstellen "
+"worden geannuleerd."
+
+#: templates/exam_people.html:8 templates/partials/exam_header.html:14
+msgid "Students"
+msgstr "Studenten"
+
+#: templates/exam_people.html:14
+msgid "no slot yet"
+msgstr "nog geen tijdslot"
+
+#: templates/exam_people.html:22
+msgid "Remove"
+msgstr "Verwijderen"
+
+#: templates/exam_people.html:27
+msgid "Nobody has joined yet."
+msgstr "Er heeft nog niemand deelgenomen."
+
+#: templates/exam_people.html:28
+msgid "Invite students"
+msgstr "Studenten uitnodigen"
+
+#: templates/home.html:8
+msgid "Add exam"
+msgstr "Examen toevoegen"
+
+#: templates/home.html:14
 msgid "You have no exams yet."
 msgstr "Je hebt nog geen examens."
 
-#: templates/home.html:11
+#: templates/home.html:16
 msgid ""
 "You are not enrolled in any exam yet. Open the invitation link from your "
 "teacher."
 msgstr ""
 "Je bent nog niet ingeschreven voor een examen. Open de uitnodigingslink van "
-"je docent."
+"je leerkracht."
 
-#: templates/home.html:29
+#: templates/home.html:34
 msgid "Dates are not set yet"
 msgstr "De datums zijn nog niet vastgesteld"
 
-#: templates/home.html:38
+#: templates/home.html:43
 msgid "Past exams"
 msgstr "Afgelopen examens"
 
@@ -815,24 +886,32 @@ msgid "Back to Slotly"
 msgstr "Terug naar Slotly"
 
 #: templates/join.html:18
+msgid ""
+"You are logged in as a teacher. To try the student view, open this link in a"
+" private window, or log out first."
+msgstr ""
+"Je bent ingelogd als leerkracht. Open deze link in een privévenster of log "
+"eerst uit om de studentenweergave te proberen."
+
+#: templates/join.html:21
 msgid "Already joined this exam? Log in to open it."
 msgstr "Al ingeschreven voor dit examen? Log in om het te openen."
 
-#: templates/join.html:20 templates/join.html:30 templates/register.html:32
+#: templates/join.html:23 templates/join.html:33 templates/register.html:32
 #: templates/registration/login.html:3 templates/registration/login.html:6
 #: templates/registration/login.html:30
 msgid "Log in"
 msgstr "Inloggen"
 
-#: templates/join.html:25
+#: templates/join.html:28
 msgid "Join exam"
 msgstr "Deelnemen aan examen"
 
-#: templates/join.html:28
+#: templates/join.html:31
 msgid "Log in or create an account to join."
 msgstr "Log in of maak een account aan om deel te nemen."
 
-#: templates/join.html:32 templates/register.html:3
+#: templates/join.html:35 templates/register.html:3
 msgid "Register"
 msgstr "Registreren"
 
@@ -847,6 +926,55 @@ msgstr "Dag verwijderen"
 #: templates/partials/day_draft.html:34
 msgid "Preview"
 msgstr "Voorvertoning"
+
+#: templates/partials/exam_header.html:5
+msgid "Exam sections"
+msgstr "Onderdelen van het examen"
+
+#: templates/partials/exam_header.html:8
+msgid "Schedule"
+msgstr "Rooster"
+
+#: templates/partials/exam_header.html:11
+msgid "Edit"
+msgstr "Bewerken"
+
+#: templates/partials/exam_header.html:17
+msgid "Invitations"
+msgstr "Uitnodigingen"
+
+#: templates/partials/invite_preview.html:8
+#, python-format
+msgid "Created %(created)s, skipped %(skipped)s"
+msgstr "%(created)s aangemaakt, %(skipped)s overgeslagen"
+
+#: templates/partials/invite_preview.html:10
+#, python-format
+msgid "Will create %(created)s, will skip %(skipped)s"
+msgstr "%(created)s worden aangemaakt, %(skipped)s worden overgeslagen"
+
+#: templates/partials/invite_preview.html:19
+#: templates/partials/invite_preview.html:44
+msgid "First name"
+msgstr "Voornaam"
+
+#: templates/partials/invite_preview.html:20
+#: templates/partials/invite_preview.html:45
+msgid "Last name"
+msgstr "Achternaam"
+
+#: templates/partials/invite_preview.html:21
+#: templates/partials/invite_preview.html:46
+msgid "Email"
+msgstr "E-mailadres"
+
+#: templates/partials/invite_preview.html:39
+msgid "Skipped"
+msgstr "Overgeslagen"
+
+#: templates/partials/invite_preview.html:47
+msgid "Reason"
+msgstr "Reden"
 
 #: templates/register.html:6
 msgid "Create an account"
