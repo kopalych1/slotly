@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 05:18+0100\n"
+"POT-Creation-Date: 2026-11-22 06:50+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -445,19 +445,19 @@ msgstr "Invitation"
 msgid "Invites"
 msgstr "Invitations"
 
-#: scheduling/services.py:458
+#: scheduling/services.py:465
 msgid "Invalid email"
 msgstr "Adresse e-mail invalide"
 
-#: scheduling/services.py:459
+#: scheduling/services.py:466
 msgid "Duplicate in the list"
 msgstr "Doublon dans la liste"
 
-#: scheduling/services.py:460
+#: scheduling/services.py:467
 msgid "Already invited"
 msgstr "Déjà invité"
 
-#: scheduling/services.py:461
+#: scheduling/services.py:468
 msgid "Already joined this exam"
 msgstr "A déjà rejoint cet examen"
 
@@ -526,15 +526,15 @@ msgstr "Étudiant retiré"
 msgid "The list is too long"
 msgstr "La liste est trop longue"
 
-#: templates/base.html:21
+#: templates/base.html:24
 msgid "Notifications"
 msgstr "Notifications"
 
-#: templates/base.html:39
+#: templates/base.html:42
 msgid "Log out"
 msgstr "Se déconnecter"
 
-#: templates/base.html:50
+#: templates/base.html:53
 msgid "Language"
 msgstr "Langue"
 
@@ -544,8 +544,8 @@ msgstr "Nouvel examen"
 
 #: templates/edit_exam.html:6
 msgid ""
-"Delete this day and all its free slots? Unsaved changes on this page will be"
-" lost."
+"Delete this day and all its free slots? Unsaved changes on this page will be "
+"lost."
 msgstr ""
 "Supprimer cette journée et tous ses créneaux libres ? Les modifications non "
 "enregistrées sur cette page seront perdues."
@@ -591,14 +591,41 @@ msgstr "Ajouter une journée"
 msgid "Delete exam"
 msgstr "Supprimer l’examen"
 
+#: templates/emails/invite.txt:1
+#, python-format
+msgid "Hello %(first_name)s,"
+msgstr "Bonjour %(first_name)s,"
+
+#: templates/emails/invite.txt:1
+msgid "Hello,"
+msgstr "Bonjour,"
+
+#: templates/emails/invite.txt:3
+#, python-format
+msgid ""
+"%(teacher_name)s has invited you to the exam \"%(exam_name)s\" on Slotly, "
+"where you can pick and swap your exam time slot."
+msgstr ""
+"%(teacher_name)s t’invite à l’examen « %(exam_name)s » sur Slotly, où tu peux"
+" choisir et échanger ton créneau d’examen."
+
+#: templates/emails/invite.txt:5
+#, python-format
+msgid ""
+"Open the link below to create your account and choose your slot. The link is "
+"valid until %(date)s."
+msgstr ""
+"Ouvre le lien ci-dessous pour créer ton compte et choisir ton créneau. Le "
+"lien est valable jusqu’au %(date)s."
+
 #: templates/exam_delete.html:8
 #, python-format
 msgid ""
-"You are about to delete “%(name)s”. This cannot be undone. The following "
-"will be deleted:"
+"You are about to delete “%(name)s”. This cannot be undone. The following will"
+" be deleted:"
 msgstr ""
-"Tu es sur le point de supprimer « %(name)s ». Cette action est irréversible."
-" Les éléments suivants seront supprimés :"
+"Tu es sur le point de supprimer « %(name)s ». Cette action est irréversible. "
+"Les éléments suivants seront supprimés :"
 
 #: templates/exam_delete.html:11
 msgid "exam days"
@@ -640,8 +667,7 @@ msgid "Cancel"
 msgstr "Annuler"
 
 #: templates/exam_detail.html:5
-msgid ""
-"Move to this slot? Your offers for your current slot will be cancelled."
+msgid "Move to this slot? Your offers for your current slot will be cancelled."
 msgstr ""
 "Passer à ce créneau ? Tes offres pour ton créneau actuel seront annulées."
 
@@ -669,11 +695,11 @@ msgstr[2] "Tu peux encore envoyer %(counter)s offres."
 
 #: templates/exam_detail.html:21
 msgid ""
-"You have reached the limit of active offers. Wait for answers or withdraw "
-"any offer"
+"You have reached the limit of active offers. Wait for answers or withdraw any"
+" offer"
 msgstr ""
-"Tu as atteint la limite d’offres actives. Attends les réponses ou retire une"
-" offre"
+"Tu as atteint la limite d’offres actives. Attends les réponses ou retire une "
+"offre"
 
 #: templates/exam_detail.html:46
 msgid "You"
@@ -826,8 +852,7 @@ msgstr "Aucune invitation personnelle pour le moment."
 #: templates/exam_people.html:5
 msgid ""
 "Remove this student? Their slot will be freed and their offers cancelled."
-msgstr ""
-"Retirer cet étudiant ? Son créneau sera libéré et ses offres annulées."
+msgstr "Retirer cet étudiant ? Son créneau sera libéré et ses offres annulées."
 
 #: templates/exam_people.html:8 templates/partials/exam_header.html:14
 msgid "Students"
@@ -862,8 +887,8 @@ msgid ""
 "You are not enrolled in any exam yet. Open the invitation link from your "
 "teacher."
 msgstr ""
-"Tu n’es encore inscrit à aucun examen. Ouvre le lien d’invitation envoyé par"
-" ton enseignant."
+"Tu n’es encore inscrit à aucun examen. Ouvre le lien d’invitation envoyé par "
+"ton enseignant."
 
 #: templates/home.html:34
 msgid "Dates are not set yet"
@@ -888,11 +913,11 @@ msgstr "Retour à Slotly"
 
 #: templates/join.html:18
 msgid ""
-"You are logged in as a teacher. To try the student view, open this link in a"
-" private window, or log out first."
+"You are logged in as a teacher. To try the student view, open this link in a "
+"private window, or log out first."
 msgstr ""
-"Tu es connecté en tant qu’enseignant. Pour essayer la vue étudiant, ouvre ce"
-" lien dans une fenêtre privée ou déconnecte-toi d’abord."
+"Tu es connecté en tant qu’enseignant. Pour essayer la vue étudiant, ouvre ce "
+"lien dans une fenêtre privée ou déconnecte-toi d’abord."
 
 #: templates/join.html:21
 msgid "Already joined this exam? Log in to open it."

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 05:18+0100\n"
+"POT-Creation-Date: 2026-11-22 06:50+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -444,19 +444,19 @@ msgstr "Uitnodiging"
 msgid "Invites"
 msgstr "Uitnodigingen"
 
-#: scheduling/services.py:458
+#: scheduling/services.py:465
 msgid "Invalid email"
 msgstr "Ongeldig e-mailadres"
 
-#: scheduling/services.py:459
+#: scheduling/services.py:466
 msgid "Duplicate in the list"
 msgstr "Dubbel in de lijst"
 
-#: scheduling/services.py:460
+#: scheduling/services.py:467
 msgid "Already invited"
 msgstr "Al uitgenodigd"
 
-#: scheduling/services.py:461
+#: scheduling/services.py:468
 msgid "Already joined this exam"
 msgstr "Neemt al deel aan dit examen"
 
@@ -525,15 +525,15 @@ msgstr "Student verwijderd"
 msgid "The list is too long"
 msgstr "De lijst is te lang"
 
-#: templates/base.html:21
+#: templates/base.html:24
 msgid "Notifications"
 msgstr "Meldingen"
 
-#: templates/base.html:39
+#: templates/base.html:42
 msgid "Log out"
 msgstr "Uitloggen"
 
-#: templates/base.html:50
+#: templates/base.html:53
 msgid "Language"
 msgstr "Taal"
 
@@ -543,8 +543,8 @@ msgstr "Nieuw examen"
 
 #: templates/edit_exam.html:6
 msgid ""
-"Delete this day and all its free slots? Unsaved changes on this page will be"
-" lost."
+"Delete this day and all its free slots? Unsaved changes on this page will be "
+"lost."
 msgstr ""
 "Deze dag en al de vrije tijdsloten verwijderen? Niet-opgeslagen wijzigingen "
 "op deze pagina gaan verloren."
@@ -590,11 +590,38 @@ msgstr "Dag toevoegen"
 msgid "Delete exam"
 msgstr "Examen verwijderen"
 
+#: templates/emails/invite.txt:1
+#, python-format
+msgid "Hello %(first_name)s,"
+msgstr "Hallo %(first_name)s,"
+
+#: templates/emails/invite.txt:1
+msgid "Hello,"
+msgstr "Hallo,"
+
+#: templates/emails/invite.txt:3
+#, python-format
+msgid ""
+"%(teacher_name)s has invited you to the exam \"%(exam_name)s\" on Slotly, "
+"where you can pick and swap your exam time slot."
+msgstr ""
+"%(teacher_name)s heeft je uitgenodigd voor het examen “%(exam_name)s” op "
+"Slotly, waar je je tijdslot voor het examen kunt kiezen en ruilen."
+
+#: templates/emails/invite.txt:5
+#, python-format
+msgid ""
+"Open the link below to create your account and choose your slot. The link is "
+"valid until %(date)s."
+msgstr ""
+"Open de onderstaande link om je account aan te maken en je tijdslot te "
+"kiezen. De link is geldig tot %(date)s."
+
 #: templates/exam_delete.html:8
 #, python-format
 msgid ""
-"You are about to delete “%(name)s”. This cannot be undone. The following "
-"will be deleted:"
+"You are about to delete “%(name)s”. This cannot be undone. The following will"
+" be deleted:"
 msgstr ""
 "Je staat op het punt om “%(name)s” te verwijderen. Dit kan niet ongedaan "
 "worden gemaakt. Het volgende wordt verwijderd:"
@@ -638,11 +665,10 @@ msgid "Cancel"
 msgstr "Annuleren"
 
 #: templates/exam_detail.html:5
-msgid ""
-"Move to this slot? Your offers for your current slot will be cancelled."
+msgid "Move to this slot? Your offers for your current slot will be cancelled."
 msgstr ""
-"Naar dit tijdslot verplaatsen? Je voorstellen voor je huidige tijdslot "
-"worden geannuleerd."
+"Naar dit tijdslot verplaatsen? Je voorstellen voor je huidige tijdslot worden"
+" geannuleerd."
 
 #: templates/exam_detail.html:6
 msgid "Send a swap offer for this slot? The student will see it on the site."
@@ -667,11 +693,11 @@ msgstr[1] "Je kunt nog %(counter)s voorstellen versturen."
 
 #: templates/exam_detail.html:21
 msgid ""
-"You have reached the limit of active offers. Wait for answers or withdraw "
-"any offer"
+"You have reached the limit of active offers. Wait for answers or withdraw any"
+" offer"
 msgstr ""
-"Je hebt het maximumaantal actieve voorstellen bereikt. Wacht op antwoorden "
-"of trek een voorstel in"
+"Je hebt het maximumaantal actieve voorstellen bereikt. Wacht op antwoorden of"
+" trek een voorstel in"
 
 #: templates/exam_detail.html:46
 msgid "You"
@@ -887,8 +913,8 @@ msgstr "Terug naar Slotly"
 
 #: templates/join.html:18
 msgid ""
-"You are logged in as a teacher. To try the student view, open this link in a"
-" private window, or log out first."
+"You are logged in as a teacher. To try the student view, open this link in a "
+"private window, or log out first."
 msgstr ""
 "Je bent ingelogd als leerkracht. Open deze link in een privévenster of log "
 "eerst uit om de studentenweergave te proberen."

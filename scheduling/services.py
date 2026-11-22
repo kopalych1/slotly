@@ -1,12 +1,17 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from itertools import pairwise
+from smtplib import SMTPException
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.mail import EmailMessage
 from django.core.validators import validate_email
 from django.db import IntegrityError, models, transaction
 from django.db.models import Q
 from django.db.models.functions import Lower
+from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
@@ -88,6 +93,8 @@ def bulk_fill_slots(examday: ExamDay) -> list[Slot]:
 OFFER_LIFETIME = timedelta(days=1)
 MAX_ACTIVE_OFFERS = 3
 MAX_IMPORT_ROWS = 50
+
+MAX_SEND_ROWS = 50
 
 
 def create_offer(offeror: User, offered_slot: Slot, wanted_slot: Slot) -> Offer:
@@ -596,3 +603,79 @@ def remove_student(exam_id: int, student_id: int, user: User) -> None:
             ).update(status=Offer.Status.CANCELED)
 
         enrollment.delete()
+
+
+@dataclass(frozen=True)
+class SendResult:
+    sent: list[Invite]
+    failed: list[tuple[Invite, str]]
+
+
+def _build_invite_email(invite: Invite, exam: Exam, teacher: User) -> EmailMessage:
+
+    ctx = {
+        'first_name': invite.first_name,
+        'teacher_name': teacher.get_full_name() or teacher.username,
+        'exam_name': exam.name,
+        'deadline': invite.expires_at,
+        'link': (
+            settings.SITE_URL + reverse('join_invite', kwargs={'token': invite.token})
+        ),
+        'languages': ['nl', 'fr', 'en'],
+    }
+
+    return EmailMessage(
+        subject=f'{exam.name} · Slotly',
+        body=render_to_string('emails/invite.txt', ctx),
+        to=[invite.email],
+        reply_to=[teacher.email] if teacher.email else None,
+    )
+
+
+def send_personal_invites(exam_id: int, user: User) -> SendResult:
+    exam = Exam.objects.get(pk=exam_id)
+
+    if not user.is_teacher:
+        raise TeacherRequiredError()
+
+    if exam.owner_id != user.pk:  # pyright: ignore[reportAttributeAccessIssue]
+        raise NotExamOwnerError()
+
+    pending_ids = list(
+        Invite.objects.filter(
+            exam=exam,
+            is_revoked=False,
+            usage_counter=0,
+            expires_at__gt=now(),
+            sent_at=None,
+        )
+        .exclude(email='')
+        .order_by('pk')
+        .values_list('pk', flat=True)[:MAX_SEND_ROWS]
+    )
+    sent: list[Invite] = []
+    failed: list[tuple[Invite, str]] = []
+
+    for pk in pending_ids:
+        with transaction.atomic():
+            invite = Invite.objects.select_for_update().filter(pk=pk).first()
+            # state may have changed since the list was built
+            if (
+                invite is None
+                or invite.sent_at
+                or invite.is_revoked
+                or invite.usage_counter
+            ):
+                continue
+            try:
+                if _build_invite_email(invite, exam, user).send() == 0:
+                    failed.append((invite, 'not sent'))
+                    continue
+            except (SMTPException, OSError) as e:
+                failed.append((invite, str(e)))
+                continue
+            invite.sent_at = now()
+            invite.save(update_fields=['sent_at'])
+            sent.append(invite)
+
+    return SendResult(sent=sent, failed=failed)

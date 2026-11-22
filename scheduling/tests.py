@@ -1,9 +1,13 @@
 from datetime import timedelta
+from smtplib import SMTPException
+from unittest import mock
 from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.messages import get_messages
+from django.core import mail
 from django.core.exceptions import ValidationError
+from django.core.mail import EmailMessage
 from django.forms import modelform_factory
 from django.template import Context, Template
 from django.test import SimpleTestCase, TestCase
@@ -50,6 +54,7 @@ from scheduling.models import Enrollment, Exam, ExamDay, Invite, Offer, Slot, Sw
 from scheduling.parsing import parse_pasted_rows
 from scheduling.services import (
     MAX_IMPORT_ROWS,
+    MAX_SEND_ROWS,
     accept_invite,
     accept_offer,
     bulk_fill_slots,
@@ -63,6 +68,7 @@ from scheduling.services import (
     release_slot,
     remove_student,
     save_exam,
+    send_personal_invites,
     take_slot,
     withdraw_offer,
 )
@@ -2519,3 +2525,144 @@ class ParsePastedRowsTests(SimpleTestCase):
     def test_empty_text(self):
         self.assertEqual(parse_pasted_rows(''), [])
         self.assertEqual(parse_pasted_rows('\n  \n'), [])
+
+
+class SendPersonalInvitesTests(SchedulingTestCase):
+    def setUp(self):
+        super().setUp()
+        self.teacher.email = 'teacher@example.com'
+        self.teacher.save()
+
+    def make_invites(self, *emails, exam=None):
+        exam = exam or self.exam
+        rows = [{'email': e, 'first_name': 'Anna'} for e in emails]
+        return create_personal_invites(exam.pk, self.teacher, rows).created
+
+    def test_sends_to_every_unsent_invite(self):
+        invites = self.make_invites('a@example.com', 'b@example.com')
+
+        result = send_personal_invites(self.exam.pk, self.teacher)
+
+        self.assertEqual(len(result.sent), 2)
+        self.assertEqual(result.failed, [])
+        self.assertEqual(
+            sorted(m.to[0] for m in mail.outbox), ['a@example.com', 'b@example.com']
+        )
+        for invite in invites:
+            invite.refresh_from_db()
+            self.assertIsNotNone(invite.sent_at)
+
+    def test_message_content(self):
+        invite = self.make_invites('a@example.com')[0]
+
+        send_personal_invites(self.exam.pk, self.teacher)
+
+        message = mail.outbox[0]
+        self.assertEqual(message.subject, f'{self.exam.name} · Slotly')
+        self.assertEqual(message.reply_to, ['teacher@example.com'])
+        self.assertIn(f'/join/{invite.token}/', message.body)
+        self.assertEqual(message.body.count(f'/join/{invite.token}/'), 1)
+        self.assertIn(self.exam.name, message.body)
+        # three language blocks are separated by two separators
+        self.assertEqual(message.body.count('- - -'), 2)
+
+    def test_second_call_sends_nothing(self):
+        self.make_invites('a@example.com')
+        send_personal_invites(self.exam.pk, self.teacher)
+
+        result = send_personal_invites(self.exam.pk, self.teacher)
+
+        self.assertEqual(result.sent, [])
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_skips_revoked_used_and_expired(self):
+        revoked, used, expired, ok = self.make_invites(
+            'revoked@example.com',
+            'used@example.com',
+            'expired@example.com',
+            'ok@example.com',
+        )
+        Invite.objects.filter(pk=revoked.pk).update(is_revoked=True)
+        Invite.objects.filter(pk=used.pk).update(usage_counter=1)
+        Invite.objects.filter(pk=expired.pk).update(
+            expires_at=now() - timedelta(minutes=1)
+        )
+
+        result = send_personal_invites(self.exam.pk, self.teacher)
+
+        self.assertEqual([i.pk for i in result.sent], [ok.pk])
+        self.assertEqual([m.to[0] for m in mail.outbox], ['ok@example.com'])
+
+    def test_failure_leaves_sent_at_empty_and_others_still_go(self):
+        bad, good = self.make_invites('bad@example.com', 'good@example.com')
+        real_send = EmailMessage.send
+
+        def fake_send(message, *args, **kwargs):
+            if 'bad@example.com' in message.to:
+                raise SMTPException('boom')
+            return real_send(message, *args, **kwargs)
+
+        with mock.patch.object(EmailMessage, 'send', fake_send):
+            result = send_personal_invites(self.exam.pk, self.teacher)
+
+        self.assertEqual([i.pk for i in result.sent], [good.pk])
+        self.assertEqual([i.pk for i, _ in result.failed], [bad.pk])
+        self.assertIn('boom', result.failed[0][1])
+        bad.refresh_from_db()
+        good.refresh_from_db()
+        self.assertIsNone(bad.sent_at)
+        self.assertIsNotNone(good.sent_at)
+
+    def test_failed_invite_is_retried_next_time(self):
+        invite = self.make_invites('a@example.com')[0]
+        with mock.patch.object(EmailMessage, 'send', side_effect=SMTPException('x')):
+            send_personal_invites(self.exam.pk, self.teacher)
+
+        result = send_personal_invites(self.exam.pk, self.teacher)
+
+        self.assertEqual([i.pk for i in result.sent], [invite.pk])
+
+    def test_sends_at_most_max_rows_per_call(self):
+        self.make_invites(*[f'a{i}@example.com' for i in range(30)])
+        self.make_invites(*[f'b{i}@example.com' for i in range(30)])
+
+        first = send_personal_invites(self.exam.pk, self.teacher)
+        second = send_personal_invites(self.exam.pk, self.teacher)
+
+        self.assertEqual(len(first.sent), MAX_SEND_ROWS)
+        self.assertEqual(len(second.sent), 60 - MAX_SEND_ROWS)
+
+    def test_other_exams_are_not_touched(self):
+        other = Exam.objects.create(
+            name='Other',
+            owner=self.teacher,
+            slot_duration=20,
+            slots_change_deadline=now() + timedelta(days=3),
+        )
+        mine = self.make_invites('mine@example.com')[0]  # noqa: F841
+        theirs = self.make_invites('other@example.com', exam=other)[0]
+
+        send_personal_invites(self.exam.pk, self.teacher)
+
+        self.assertEqual([m.to[0] for m in mail.outbox], ['mine@example.com'])
+        theirs.refresh_from_db()
+        self.assertIsNone(theirs.sent_at)
+
+    def test_student_cannot_send(self):
+        self.make_invites('a@example.com')
+
+        with self.assertRaises(TeacherRequiredError):
+            send_personal_invites(self.exam.pk, self.students[0])
+
+        self.assertEqual(mail.outbox, [])
+
+    def test_other_teacher_cannot_send(self):
+        self.make_invites('a@example.com')
+        other = User.objects.create_user(
+            username='other_teacher', password='pass', role='TCH'
+        )
+
+        with self.assertRaises(NotExamOwnerError):
+            send_personal_invites(self.exam.pk, other)
+
+        self.assertEqual(mail.outbox, [])

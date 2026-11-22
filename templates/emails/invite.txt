@@ -1,0 +1,12 @@
+{% load i18n %}{% autoescape off %}{% for lang in languages %}{% language lang %}{% if first_name %}{% blocktranslate %}Hello {{ first_name }},{% endblocktranslate %}{% else %}{% translate "Hello," %}{% endif %}
+
+{% blocktranslate %}{{ teacher_name }} has invited you to the exam "{{ exam_name }}" on Slotly, where you can pick and swap your exam time slot.{% endblocktranslate %}
+
+{% blocktranslate with date=deadline|date:"j F Y, H:i" %}Open the link below to create your account and choose your slot. The link is valid until {{ date }}.{% endblocktranslate %}
+{% if not forloop.last %}
+- - -
+
+{% endif %}{% endlanguage %}{% endfor %}
+
+{{ link }}
+{% endautoescape %}
