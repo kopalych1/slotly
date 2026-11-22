@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-22 06:50+0100\n"
+"POT-Creation-Date: 2026-11-22 07:59+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -21,7 +21,7 @@ msgstr ""
 msgid "Teacher"
 msgstr "Leerkracht"
 
-#: accounts/models.py:9 templates/exam_invites.html:114
+#: accounts/models.py:9 templates/exam_invites.html:124
 msgid "Student"
 msgstr "Student"
 
@@ -170,7 +170,7 @@ msgstr "Examendagen mogen elkaar niet overlappen"
 msgid "Some slots of this day are already taken by students"
 msgstr "Sommige tijdsloten op deze dag zijn al bezet door studenten"
 
-#: scheduling/exceptions.py:154 scheduling/views.py:474
+#: scheduling/exceptions.py:154 scheduling/views.py:478
 msgid "The usage limit must be a positive number"
 msgstr "De gebruiksbeperking moet een positief getal zijn"
 
@@ -296,7 +296,7 @@ msgid "Canceled"
 msgstr "Geannuleerd"
 
 #: scheduling/models.py:139 templates/exam_detail.html:121
-#: templates/exam_invites.html:135
+#: templates/exam_invites.html:145
 msgid "Expired"
 msgstr "Verlopen"
 
@@ -320,7 +320,7 @@ msgstr "Aangeboden tijdslot"
 msgid "Wanted slot"
 msgstr "Gewenst tijdslot"
 
-#: scheduling/models.py:162 templates/exam_invites.html:115
+#: scheduling/models.py:162 templates/exam_invites.html:125
 msgid "Status"
 msgstr "Status"
 
@@ -460,70 +460,88 @@ msgstr "Al uitgenodigd"
 msgid "Already joined this exam"
 msgstr "Neemt al deel aan dit examen"
 
-#: scheduling/views.py:143
+#: scheduling/views.py:147
 msgid "Slot successfully taken"
 msgstr "Tijdslot succesvol gekozen"
 
-#: scheduling/views.py:158
+#: scheduling/views.py:162
 msgid "Slot successfully released"
 msgstr "Tijdslot succesvol vrijgegeven"
 
-#: scheduling/views.py:172
+#: scheduling/views.py:176
 msgid "You need a slot to offer a swap"
 msgstr "Je moet een tijdslot hebben om een ruilvoorstel te doen"
 
-#: scheduling/views.py:180
+#: scheduling/views.py:184
 msgid "Offer sent successfully"
 msgstr "Voorstel succesvol verzonden"
 
-#: scheduling/views.py:198
+#: scheduling/views.py:202
 #, python-format
 msgid "Swapped: your new slot is %(time)s"
 msgstr "Geruild: je nieuwe tijdslot is %(time)s"
 
-#: scheduling/views.py:215
+#: scheduling/views.py:219
 msgid "Offer declined"
 msgstr "Voorstel afgewezen"
 
-#: scheduling/views.py:230
+#: scheduling/views.py:234
 msgid "Offer withdrawn"
 msgstr "Voorstel ingetrokken"
 
-#: scheduling/views.py:275 scheduling/views.py:311
+#: scheduling/views.py:279 scheduling/views.py:315
 msgid "Invite accepted"
 msgstr "Uitnodiging geaccepteerd"
 
-#: scheduling/views.py:379
+#: scheduling/views.py:383
 msgid "Exam saved"
 msgstr "Examen opgeslagen"
 
-#: scheduling/views.py:419
+#: scheduling/views.py:423
 msgid "Day deleted"
 msgstr "Dag verwijderd"
 
-#: scheduling/views.py:448
+#: scheduling/views.py:452
 msgid "The name does not match. Nothing was deleted."
 msgstr "De naam komt niet overeen. Er is niets verwijderd."
 
-#: scheduling/views.py:455
+#: scheduling/views.py:459
 msgid "Exam deleted"
 msgstr "Examen verwijderd"
 
-#: scheduling/views.py:482
+#: scheduling/views.py:486
 msgid "Invite created"
 msgstr "Uitnodiging aangemaakt"
 
-#: scheduling/views.py:500
+#: scheduling/views.py:504
 msgid "Invite revoked"
 msgstr "Uitnodiging ingetrokken"
 
-#: scheduling/views.py:516
+#: scheduling/views.py:520
 msgid "Student removed"
 msgstr "Student verwijderd"
 
-#: scheduling/views.py:540
+#: scheduling/views.py:544
 msgid "The list is too long"
 msgstr "De lijst is te lang"
+
+#: scheduling/views.py:679
+#, python-format
+msgid "Sent %(count)d invitation"
+msgid_plural "Sent %(count)d invitations"
+msgstr[0] "%(count)d uitnodiging verstuurd"
+msgstr[1] "%(count)d uitnodigingen verstuurd"
+
+#: scheduling/views.py:691
+#, python-format
+msgid "Could not send %(count)d invitation: %(emails)s"
+msgid_plural "Could not send %(count)d invitations: %(emails)s"
+msgstr[0] "%(count)d uitnodiging kon niet worden verstuurd: %(emails)s"
+msgstr[1] "%(count)d uitnodigingen konden niet worden verstuurd: %(emails)s"
+
+#: scheduling/views.py:698
+msgid "Nothing to send"
+msgstr "Er is niets om te versturen"
 
 #: templates/base.html:24
 msgid "Notifications"
@@ -793,7 +811,7 @@ msgstr "gebruikt"
 msgid "until"
 msgstr "tot"
 
-#: templates/exam_invites.html:72 templates/exam_invites.html:149
+#: templates/exam_invites.html:72 templates/exam_invites.html:159
 msgid "Revoke"
 msgstr "Intrekken"
 
@@ -830,20 +848,36 @@ msgstr "Uitnodigingen aanmaken"
 msgid "Invited students"
 msgstr "Uitgenodigde studenten"
 
-#: templates/exam_invites.html:133
+#: templates/exam_invites.html:110
+#, python-format
+msgid "Send %(counter)s email now? Sent emails cannot be recalled."
+msgid_plural "Send %(counter)s emails now? Sent emails cannot be recalled."
+msgstr[0] ""
+"%(counter)s e-mail nu versturen? Verzonden e-mails kunnen niet worden "
+"teruggehaald."
+msgstr[1] ""
+"%(counter)s e-mails nu versturen? Verzonden e-mails kunnen niet worden "
+"teruggehaald."
+
+#: templates/exam_invites.html:116
+#, python-format
+msgid "Send invitations (%(n)s)"
+msgstr "Uitnodigingen versturen (%(n)s)"
+
+#: templates/exam_invites.html:143
 msgid "Joined"
 msgstr "Deelgenomen"
 
-#: templates/exam_invites.html:137
+#: templates/exam_invites.html:147
 #, python-format
 msgid "Sent %(date)s"
 msgstr "Verzonden %(date)s"
 
-#: templates/exam_invites.html:139
+#: templates/exam_invites.html:149
 msgid "Not sent"
 msgstr "Niet verzonden"
 
-#: templates/exam_invites.html:159
+#: templates/exam_invites.html:169
 msgid "No personal invitations yet."
 msgstr "Nog geen persoonlijke uitnodigingen."
 

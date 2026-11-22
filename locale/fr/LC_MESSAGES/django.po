@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-22 06:50+0100\n"
+"POT-Creation-Date: 2026-11-22 07:59+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -21,7 +21,7 @@ msgstr ""
 msgid "Teacher"
 msgstr "Enseignant"
 
-#: accounts/models.py:9 templates/exam_invites.html:114
+#: accounts/models.py:9 templates/exam_invites.html:124
 msgid "Student"
 msgstr "Étudiant"
 
@@ -171,7 +171,7 @@ msgstr "Les journées d’examen ne doivent pas se chevaucher"
 msgid "Some slots of this day are already taken by students"
 msgstr "Certains créneaux de cette journée sont déjà pris par des étudiants"
 
-#: scheduling/exceptions.py:154 scheduling/views.py:474
+#: scheduling/exceptions.py:154 scheduling/views.py:478
 msgid "The usage limit must be a positive number"
 msgstr "La limite d’utilisation doit être un nombre positif"
 
@@ -297,7 +297,7 @@ msgid "Canceled"
 msgstr "Annulée"
 
 #: scheduling/models.py:139 templates/exam_detail.html:121
-#: templates/exam_invites.html:135
+#: templates/exam_invites.html:145
 msgid "Expired"
 msgstr "Expirée"
 
@@ -321,7 +321,7 @@ msgstr "Créneau proposé"
 msgid "Wanted slot"
 msgstr "Créneau souhaité"
 
-#: scheduling/models.py:162 templates/exam_invites.html:115
+#: scheduling/models.py:162 templates/exam_invites.html:125
 msgid "Status"
 msgstr "Statut"
 
@@ -461,70 +461,90 @@ msgstr "Déjà invité"
 msgid "Already joined this exam"
 msgstr "A déjà rejoint cet examen"
 
-#: scheduling/views.py:143
+#: scheduling/views.py:147
 msgid "Slot successfully taken"
 msgstr "Créneau réservé avec succès"
 
-#: scheduling/views.py:158
+#: scheduling/views.py:162
 msgid "Slot successfully released"
 msgstr "Créneau libéré avec succès"
 
-#: scheduling/views.py:172
+#: scheduling/views.py:176
 msgid "You need a slot to offer a swap"
 msgstr "Tu dois avoir un créneau pour proposer un échange"
 
-#: scheduling/views.py:180
+#: scheduling/views.py:184
 msgid "Offer sent successfully"
 msgstr "Offre envoyée avec succès"
 
-#: scheduling/views.py:198
+#: scheduling/views.py:202
 #, python-format
 msgid "Swapped: your new slot is %(time)s"
 msgstr "Échange effectué : ton nouveau créneau est %(time)s"
 
-#: scheduling/views.py:215
+#: scheduling/views.py:219
 msgid "Offer declined"
 msgstr "Offre refusée"
 
-#: scheduling/views.py:230
+#: scheduling/views.py:234
 msgid "Offer withdrawn"
 msgstr "Offre retirée"
 
-#: scheduling/views.py:275 scheduling/views.py:311
+#: scheduling/views.py:279 scheduling/views.py:315
 msgid "Invite accepted"
 msgstr "Invitation acceptée"
 
-#: scheduling/views.py:379
+#: scheduling/views.py:383
 msgid "Exam saved"
 msgstr "Examen enregistré"
 
-#: scheduling/views.py:419
+#: scheduling/views.py:423
 msgid "Day deleted"
 msgstr "Journée supprimée"
 
-#: scheduling/views.py:448
+#: scheduling/views.py:452
 msgid "The name does not match. Nothing was deleted."
 msgstr "Le nom ne correspond pas. Rien n’a été supprimé."
 
-#: scheduling/views.py:455
+#: scheduling/views.py:459
 msgid "Exam deleted"
 msgstr "Examen supprimé"
 
-#: scheduling/views.py:482
+#: scheduling/views.py:486
 msgid "Invite created"
 msgstr "Invitation créée"
 
-#: scheduling/views.py:500
+#: scheduling/views.py:504
 msgid "Invite revoked"
 msgstr "Invitation révoquée"
 
-#: scheduling/views.py:516
+#: scheduling/views.py:520
 msgid "Student removed"
 msgstr "Étudiant retiré"
 
-#: scheduling/views.py:540
+#: scheduling/views.py:544
 msgid "The list is too long"
 msgstr "La liste est trop longue"
+
+#: scheduling/views.py:679
+#, python-format
+msgid "Sent %(count)d invitation"
+msgid_plural "Sent %(count)d invitations"
+msgstr[0] "%(count)d invitation envoyée"
+msgstr[1] "%(count)d invitations envoyées"
+msgstr[2] "%(count)d invitations envoyées"
+
+#: scheduling/views.py:691
+#, python-format
+msgid "Could not send %(count)d invitation: %(emails)s"
+msgid_plural "Could not send %(count)d invitations: %(emails)s"
+msgstr[0] "%(count)d invitation n’a pas pu être envoyée : %(emails)s"
+msgstr[1] "%(count)d invitations n’ont pas pu être envoyées : %(emails)s"
+msgstr[2] "%(count)d invitations n’ont pas pu être envoyées : %(emails)s"
+
+#: scheduling/views.py:698
+msgid "Nothing to send"
+msgstr "Rien à envoyer"
 
 #: templates/base.html:24
 msgid "Notifications"
@@ -795,7 +815,7 @@ msgstr "utilisé"
 msgid "until"
 msgstr "jusqu’au"
 
-#: templates/exam_invites.html:72 templates/exam_invites.html:149
+#: templates/exam_invites.html:72 templates/exam_invites.html:159
 msgid "Revoke"
 msgstr "Révoquer"
 
@@ -832,20 +852,39 @@ msgstr "Créer les invitations"
 msgid "Invited students"
 msgstr "Étudiants invités"
 
-#: templates/exam_invites.html:133
+#: templates/exam_invites.html:110
+#, python-format
+msgid "Send %(counter)s email now? Sent emails cannot be recalled."
+msgid_plural "Send %(counter)s emails now? Sent emails cannot be recalled."
+msgstr[0] ""
+"Envoyer %(counter)s e-mail maintenant ? Les e-mails envoyés ne peuvent pas "
+"être rappelés."
+msgstr[1] ""
+"Envoyer %(counter)s e-mails maintenant ? Les e-mails envoyés ne peuvent pas "
+"être rappelés."
+msgstr[2] ""
+"Envoyer %(counter)s e-mails maintenant ? Les e-mails envoyés ne peuvent pas "
+"être rappelés."
+
+#: templates/exam_invites.html:116
+#, python-format
+msgid "Send invitations (%(n)s)"
+msgstr "Envoyer les invitations (%(n)s)"
+
+#: templates/exam_invites.html:143
 msgid "Joined"
 msgstr "A rejoint"
 
-#: templates/exam_invites.html:137
+#: templates/exam_invites.html:147
 #, python-format
 msgid "Sent %(date)s"
 msgstr "Envoyée le %(date)s"
 
-#: templates/exam_invites.html:139
+#: templates/exam_invites.html:149
 msgid "Not sent"
 msgstr "Non envoyée"
 
-#: templates/exam_invites.html:159
+#: templates/exam_invites.html:169
 msgid "No personal invitations yet."
 msgstr "Aucune invitation personnelle pour le moment."
 
