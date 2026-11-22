@@ -1,3 +1,4 @@
 -r requirements.txt
 djlint==1.47.1
 ruff==0.17.3
+polib==1.2.0
