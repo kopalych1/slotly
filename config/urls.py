@@ -92,4 +92,9 @@ urlpatterns = [
         scheduling.views.exam_invites,
         name='exam_invites',
     ),
+    path(
+        'exams/<int:exam_id>/invites/send/',
+        scheduling.views.invites_send,
+        name='invites_send',
+    ),
 ]

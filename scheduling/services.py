@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
 from django.db import IntegrityError, models, transaction
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.db.models.functions import Lower
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -632,6 +632,16 @@ def _build_invite_email(invite: Invite, exam: Exam, teacher: User) -> EmailMessa
     )
 
 
+def pending_invites(exam: Exam) -> QuerySet[Invite]:
+    return Invite.objects.filter(
+        exam=exam,
+        is_revoked=False,
+        usage_counter=0,
+        expires_at__gt=now(),
+        sent_at=None,
+    ).exclude(email='')
+
+
 def send_personal_invites(exam_id: int, user: User) -> SendResult:
     exam = Exam.objects.get(pk=exam_id)
 
@@ -642,14 +652,7 @@ def send_personal_invites(exam_id: int, user: User) -> SendResult:
         raise NotExamOwnerError()
 
     pending_ids = list(
-        Invite.objects.filter(
-            exam=exam,
-            is_revoked=False,
-            usage_counter=0,
-            expires_at__gt=now(),
-            sent_at=None,
-        )
-        .exclude(email='')
+        pending_invites(exam)
         .order_by('pk')
         .values_list('pk', flat=True)[:MAX_SEND_ROWS]
     )

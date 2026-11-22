@@ -106,6 +106,16 @@
         <button type="submit" class="btn btn--primary">{% translate "Create invitations" %}</button>
       </form>
       <h3>{% trans "Invited students" %} <span class="badge">{{ personal|length }}</span></h3>
+      {% if pending_count %}
+        {% blocktranslate count counter=send_count asvar send_confirm %}Send {{ counter }} email now? Sent emails cannot be recalled.{% plural %}Send {{ counter }} emails now? Sent emails cannot be recalled.{% endblocktranslate %}
+        <form method="post"
+              class="send-form"
+              action="{% url 'invites_send' exam.pk %}"
+              onsubmit="return confirm('{{ send_confirm|escapejs }}')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn--primary">{% blocktranslate with n=send_count %}Send invitations ({{ n }}){% endblocktranslate %}</button>
+        </form>
+      {% endif %}
       {% if personal %}
         <div class="table-wrap">
           <table class="data-table">
@@ -134,7 +144,7 @@
                     {% elif item.status == "expired" %}
                       <span class="pill pill--danger">{% trans "Expired" %}</span>
                     {% elif item.status == "sent" %}
-                      <span class="pill">{% blocktranslate with date=item.invite.sent_at|date:"d M" %}Sent {{ date }}{% endblocktranslate %}</span>
+                      <span class="pill pill--warn">{% blocktranslate with date=item.invite.sent_at|date:"d M" %}Sent {{ date }}{% endblocktranslate %}</span>
                     {% else %}
                       <span class="pill">{% trans "Not sent" %}</span>
                     {% endif %}

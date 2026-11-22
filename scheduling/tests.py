@@ -2666,3 +2666,139 @@ class SendPersonalInvitesTests(SchedulingTestCase):
             send_personal_invites(self.exam.pk, other)
 
         self.assertEqual(mail.outbox, [])
+
+
+class InvitesSendViewTests(SchedulingTestCase):
+    def setUp(self):
+        self.url = reverse('invites_send', kwargs={'exam_id': self.exam.pk})
+        self.page_url = reverse('exam_invites', kwargs={'exam_id': self.exam.pk})
+        self.invite = self.make_invite('anna@example.com')
+        self.client.force_login(self.teacher)
+
+    def make_invite(self, email, **kwargs):
+        return Invite.objects.create(
+            exam=self.exam,
+            email=email,
+            first_name='Anna',
+            usage_limit=1,
+            expires_at=now() + timedelta(days=7),
+            **kwargs,
+        )
+
+    def messages(self, response):
+        return [str(m) for m in get_messages(response.wsgi_request)]
+
+    def test_requires_post(self):
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_anonymous_is_redirected_to_login(self):
+        self.client.logout()
+        response = self.client.post(self.url)
+        self.assertRedirects(
+            response,
+            f'{reverse("login")}?next={self.url}',
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_sends_and_redirects_to_invites_page(self):
+        response = self.client.post(self.url)
+        self.assertRedirects(response, self.page_url)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['anna@example.com'])
+        self.invite.refresh_from_db()
+        self.assertIsNotNone(self.invite.sent_at)
+
+    def test_success_message_counts_sent(self):
+        self.make_invite('ben@example.com')
+        response = self.client.post(self.url)
+        self.assertEqual(message_levels(response), ['success'])
+        self.assertIn('Sent 2 invitations', self.messages(response)[0])
+
+    def test_success_message_is_singular_for_one(self):
+        response = self.client.post(self.url)
+        self.assertIn('Sent 1 invitation', self.messages(response)[0])
+        self.assertNotIn('invitations', self.messages(response)[0])
+
+    def test_failure_lists_emails_and_keeps_sent_at_empty(self):
+        with patch.object(EmailMessage, 'send', side_effect=SMTPException('boom')):
+            response = self.client.post(self.url)
+        self.assertEqual(message_levels(response), ['error'])
+        self.assertIn('anna@example.com', self.messages(response)[0])
+        self.assertNotIn('boom', self.messages(response)[0])
+        self.invite.refresh_from_db()
+        self.assertIsNone(self.invite.sent_at)
+
+    def test_partial_failure_gives_both_messages(self):
+        self.make_invite('ben@example.com')
+        real_send = EmailMessage.send
+
+        def flaky(message, *args, **kwargs):
+            if message.to == ['anna@example.com']:
+                raise SMTPException('boom')
+            return real_send(message, *args, **kwargs)
+
+        with patch.object(EmailMessage, 'send', autospec=True, side_effect=flaky):
+            response = self.client.post(self.url)
+        self.assertEqual(message_levels(response), ['success', 'error'])
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['ben@example.com'])
+
+    def test_nothing_to_send_gives_info_message(self):
+        Invite.objects.filter(pk=self.invite.pk).update(sent_at=now())
+        response = self.client.post(self.url)
+        self.assertRedirects(response, self.page_url)
+        self.assertEqual(message_levels(response), ['info'])
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_other_teacher_gets_404(self):
+        other = User.objects.create_user(
+            username='other', password='pass', role=User.Role.TEACHER
+        )
+        self.client.force_login(other)
+        self.assertEqual(self.client.post(self.url).status_code, 404)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_student_gets_404(self):
+        self.client.force_login(self.students[0])
+        self.assertEqual(self.client.post(self.url).status_code, 404)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_unknown_exam_gets_404(self):
+        url = reverse('invites_send', kwargs={'exam_id': 999999})
+        self.assertEqual(self.client.post(url).status_code, 404)
+
+
+class InvitesSendButtonTests(SchedulingTestCase):
+    def setUp(self):
+        self.page_url = reverse('exam_invites', kwargs={'exam_id': self.exam.pk})
+        self.send_url = reverse('invites_send', kwargs={'exam_id': self.exam.pk})
+        self.client.force_login(self.teacher)
+
+    def make_invite(self, email, **kwargs):
+        return Invite.objects.create(
+            exam=self.exam,
+            email=email,
+            usage_limit=1,
+            expires_at=now() + timedelta(days=7),
+            **kwargs,
+        )
+
+    def test_button_hidden_when_nothing_pending(self):
+        response = self.client.get(self.page_url)
+        self.assertNotContains(response, self.send_url)
+
+    def test_button_shows_pending_count(self):
+        self.make_invite('a@example.com')
+        self.make_invite('b@example.com')
+        self.make_invite('c@example.com', sent_at=now())
+        response = self.client.get(self.page_url)
+        self.assertEqual(response.context['pending_count'], 2)
+        self.assertContains(response, self.send_url)
+        self.assertContains(response, 'Send invitations (2)')
+
+    def test_button_hidden_when_all_sent(self):
+        self.make_invite('a@example.com', sent_at=now())
+        response = self.client.get(self.page_url)
+        self.assertNotContains(response, self.send_url)

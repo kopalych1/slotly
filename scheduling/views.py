@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext
 from django.views.decorators.http import require_POST
 
 from accounts.forms import RegisterForm
@@ -24,6 +25,7 @@ from scheduling.models import Enrollment, Exam, ExamDay, Invite, Offer, Slot
 from scheduling.parsing import parse_pasted_rows
 from scheduling.services import (
     MAX_ACTIVE_OFFERS,
+    MAX_SEND_ROWS,
     SkipReason,
     accept_invite,
     accept_offer,
@@ -34,10 +36,12 @@ from scheduling.services import (
     delete_exam,
     delete_exam_day,
     get_invite_problem,
+    pending_invites,
     release_slot,
     remove_student,
     revoke_invite,
     save_exam,
+    send_personal_invites,
     take_slot,
     withdraw_offer,
 )
@@ -638,6 +642,8 @@ def exam_invites(request, exam_id: int):
         else []
     )
 
+    pending_count = pending_invites(exam).count()
+
     return render(
         request,
         'exam_invites.html',
@@ -649,5 +655,46 @@ def exam_invites(request, exam_id: int):
             'shared': shared,
             'personal': personal,
             'skipped_shown': skipped_shown,
+            'pending_count': pending_count,
+            'send_count': min(pending_count, MAX_SEND_ROWS),
         },
     )
+
+
+@login_required
+@require_POST
+def invites_send(request, exam_id: int):
+    exam = get_object_or_404(Exam, pk=exam_id, owner=request.user)
+
+    try:
+        result = send_personal_invites(exam.pk, request.user)
+    except SchedulingError as e:
+        messages.error(request, str(e))
+    else:
+        if result.sent:
+            n = len(result.sent)
+            messages.success(
+                request,
+                ngettext(
+                    'Sent %(count)d invitation',
+                    'Sent %(count)d invitations',
+                    n,
+                )
+                % {'count': n},
+            )
+        if result.failed:
+            n = len(result.failed)
+            emails = ', '.join(invite.email for invite, error in result.failed)
+            messages.error(
+                request,
+                ngettext(
+                    'Could not send %(count)d invitation: %(emails)s',
+                    'Could not send %(count)d invitations: %(emails)s',
+                    n,
+                )
+                % {'count': n, 'emails': emails},
+            )
+        if not result.failed and not result.sent:
+            messages.info(request, _('Nothing to send'))
+
+    return redirect('exam_invites', exam_id=exam.pk)

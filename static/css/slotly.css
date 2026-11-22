@@ -996,7 +996,7 @@ a.btn {
 .data-table td {
   padding: 0.5rem 0.75rem;
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 .data-table th {
   color: var(--muted);
@@ -1069,6 +1069,11 @@ a.btn {
   background: var(--success-bg);
   color: var(--success);
 }
+.pill--warn {
+  background: var(--wants-bg);
+  color: var(--wants-text);
+  border-color: var(--wants-border);
+}
 .pill--danger {
   background: var(--danger-bg);
   color: var(--danger);
@@ -1087,4 +1092,8 @@ a.btn {
 }
 .data-table__actions form {
   margin: 0;
+}
+
+.send-form {
+  margin: 0.75rem 0 1rem;
 }
