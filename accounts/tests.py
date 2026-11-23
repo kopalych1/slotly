@@ -110,3 +110,84 @@ def test_invalid_post_does_not_leak_into_header(self):
         self.url, self.data(first_name='Changed', email='ben@example.com')
     )
     self.assertEqual(response.context['user'].first_name, 'Anna')
+
+
+class PasswordChangeTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.url = reverse('password_change')
+        cls.user = User.objects.create_user(
+            username='anna',
+            password='old-Pass-123',
+            first_name='Anna',
+            last_name='Peeters',
+            email='anna@example.com',
+            role=User.Role.STUDENT,
+        )
+
+    def setUp(self):
+        self.client.force_login(self.user)
+
+    def data(self, **overrides):
+        data = {
+            'old_password': 'old-Pass-123',
+            'new_password1': 'new-Strong-456',
+            'new_password2': 'new-Strong-456',
+        }
+        data.update(overrides)
+        return data
+
+    def test_anonymous_is_redirected_to_login(self):
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f'{reverse("login")}?next={self.url}')
+
+    def test_get_shows_form(self):
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+
+    def test_success_changes_password_and_redirects_to_profile(self):
+        response = self.client.post(self.url, self.data())
+        self.assertRedirects(response, reverse('profile'))
+        levels = [m.level_tag for m in get_messages(response.wsgi_request)]
+        self.assertEqual(levels, ['success'])
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('new-Strong-456'))
+
+    def test_stays_logged_in_after_change(self):
+        self.client.post(self.url, self.data())
+        self.assertEqual(self.client.get(reverse('profile')).status_code, 200)
+
+    def test_wrong_old_password_is_rejected(self):
+        response = self.client.post(self.url, self.data(old_password='nope'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('old_password', response.context['form'].errors)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('old-Pass-123'))
+
+    def test_mismatching_new_passwords_are_rejected(self):
+        response = self.client.post(self.url, self.data(new_password2='different-789'))
+        self.assertIn('new_password2', response.context['form'].errors)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('old-Pass-123'))
+
+    def test_weak_password_is_rejected(self):
+        for weak in ('short', 'password'):
+            with self.subTest(weak=weak):
+                response = self.client.post(
+                    self.url, self.data(new_password1=weak, new_password2=weak)
+                )
+                self.assertIn('new_password2', response.context['form'].errors)
+
+
+class ProfileRoleTests(TestCase):
+    def test_profile_shows_role(self):
+        for role, label in (
+            (User.Role.STUDENT, 'Student'),
+            (User.Role.TEACHER, 'Teacher'),
+        ):
+            with self.subTest(role=role):
+                user = User.objects.create_user(
+                    username=f'u-{role}', password='pass', role=role
+                )
+                self.client.force_login(user)
+                self.assertContains(self.client.get(reverse('profile')), label)

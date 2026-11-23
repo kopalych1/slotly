@@ -23,8 +23,13 @@ import scheduling.views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('accounts/', include('django.contrib.auth.urls')),
     path('profile/', accounts.views.profile, name='profile'),
+    path(
+        'accounts/password_change/',
+        accounts.views.PasswordChange.as_view(),
+        name='password_change',
+    ),
+    path('accounts/', include('django.contrib.auth.urls')),
     path('', scheduling.views.index, name='home'),
     path('exams/<int:pk>/', scheduling.views.exam_detail, name='exam_detail'),
     path(
