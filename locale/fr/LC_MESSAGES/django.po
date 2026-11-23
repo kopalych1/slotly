@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-22 07:59+0100\n"
+"POT-Creation-Date: 2026-11-23 06:02+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,14 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
 
+#: accounts/forms.py:37
+msgid "This email is already used by another account"
+msgstr "Cette adresse e-mail est déjà utilisée par un autre compte"
+
+#: accounts/forms.py:44
+msgid "This username is already taken"
+msgstr "Ce nom d’utilisateur est déjà pris"
+
 #: accounts/models.py:8
 msgid "Teacher"
 msgstr "Enseignant"
@@ -24,6 +32,14 @@ msgstr "Enseignant"
 #: accounts/models.py:9 templates/exam_invites.html:124
 msgid "Student"
 msgstr "Étudiant"
+
+#: accounts/views.py:16
+msgid "Password changed"
+msgstr "Mot de passe modifié"
+
+#: accounts/views.py:28
+msgid "Profile saved"
+msgstr "Profil enregistré"
 
 #: scheduling/exceptions.py:7
 msgid "Something went wrong"
@@ -550,11 +566,11 @@ msgstr "Rien à envoyer"
 msgid "Notifications"
 msgstr "Notifications"
 
-#: templates/base.html:42
+#: templates/base.html:43
 msgid "Log out"
 msgstr "Se déconnecter"
 
-#: templates/base.html:53
+#: templates/base.html:54
 msgid "Language"
 msgstr "Langue"
 
@@ -574,7 +590,7 @@ msgstr ""
 msgid "min"
 msgstr "min"
 
-#: templates/edit_exam.html:36
+#: templates/edit_exam.html:36 templates/profile.html:25
 msgid "Save"
 msgstr "Enregistrer"
 
@@ -1041,6 +1057,20 @@ msgstr "Ignorées"
 msgid "Reason"
 msgstr "Motif"
 
+#: templates/profile.html:3 templates/profile.html:6
+msgid "Profile"
+msgstr "Profil"
+
+#: templates/profile.html:7
+msgid "Role"
+msgstr "Rôle"
+
+#: templates/profile.html:28 templates/registration/password_change_form.html:3
+#: templates/registration/password_change_form.html:6
+#: templates/registration/password_change_form.html:25
+msgid "Change password"
+msgstr "Changer le mot de passe"
+
 #: templates/register.html:6
 msgid "Create an account"
 msgstr "Créer un compte"
@@ -1060,3 +1090,7 @@ msgstr "Nom d’utilisateur"
 #: templates/registration/login.html:23
 msgid "Password"
 msgstr "Mot de passe"
+
+#: templates/registration/password_change_form.html:28
+msgid "Back to profile"
+msgstr "Retour au profil"
