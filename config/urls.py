@@ -18,11 +18,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+import accounts.views
 import scheduling.views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),
+    path('profile/', accounts.views.profile, name='profile'),
     path('', scheduling.views.index, name='home'),
     path('exams/<int:pk>/', scheduling.views.exam_detail, name='exam_detail'),
     path(

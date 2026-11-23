@@ -36,7 +36,8 @@
                 <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
               </svg>
             </button>
-            <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
+            <a class="user-name"
+               href="{% url 'profile' %}">{{ user.get_full_name|default:user.username }}</a>
             <form method="post" action="{% url 'logout' %}">
               {% csrf_token %}
               <button class="btn btn--ghost" type="submit">{% trans "Log out" %}</button>

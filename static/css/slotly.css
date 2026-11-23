@@ -132,8 +132,16 @@ a {
   margin-left: auto;
 }
 
+/* Profile */
 .user-name {
   font-weight: 500;
+}
+a.user-name {
+  color: inherit;
+  text-decoration: none;
+}
+a.user-name:hover {
+  text-decoration: underline;
 }
 
 /* Buttons */
@@ -300,7 +308,10 @@ a {
 /* Narrow screens: hide the name, keep the essentials */
 @media (max-width: 40rem) {
   .user-name {
-    display: none;
+    max-width: 6rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .site-header__inner {
     gap: 0.5rem;
