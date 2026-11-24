@@ -1,7 +1,9 @@
+import re
 from datetime import timedelta
 from smtplib import SMTPException
 from unittest import mock
 from unittest.mock import patch
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.messages import get_messages
@@ -2802,3 +2804,105 @@ class InvitesSendButtonTests(SchedulingTestCase):
         self.make_invite('a@example.com', sent_at=now())
         response = self.client.get(self.page_url)
         self.assertNotContains(response, self.send_url)
+
+
+class PasswordResetTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.url = reverse('password_reset')
+        cls.user = User.objects.create_user(
+            username='anna',
+            password='old-Pass-123',
+            first_name='Anna',
+            last_name='Peeters',
+            email='anna@example.com',
+            role=User.Role.STUDENT,
+        )
+
+    def request_reset(self, email='anna@example.com'):
+        return self.client.post(self.url, {'email': email})
+
+    def reset_path(self):
+        body = str(mail.outbox[0].body)
+        match = re.search(r'https?://\S+/accounts/reset/\S+', body)
+        if match is None:
+            self.fail('No reset link in the email')
+        return urlparse(match.group(0)).path
+
+    def test_form_page_loads(self):
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+
+    def test_login_page_links_to_reset(self):
+        response = self.client.get(reverse('login'))
+        self.assertContains(response, f'href="{self.url}"')
+
+    def test_sends_email_for_known_address(self):
+        response = self.request_reset()
+        self.assertRedirects(response, reverse('password_reset_done'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['anna@example.com'])
+
+    def test_email_lookup_ignores_case(self):
+        self.request_reset('ANNA@Example.com')
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_unknown_address_gets_same_page_but_no_email(self):
+        response = self.request_reset('nobody@example.com')
+        self.assertRedirects(response, reverse('password_reset_done'))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_inactive_user_gets_no_email(self):
+        User.objects.filter(pk=self.user.pk).update(is_active=False)
+        self.request_reset()
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_email_contains_site_link_and_username(self):
+        self.request_reset()
+        body = mail.outbox[0].body
+        self.assertIn(f'{settings.SITE_URL}/accounts/reset/', body)
+        self.assertIn('anna', body)
+
+    def test_full_flow_sets_new_password(self):
+        self.request_reset()
+        response = self.client.get(self.reset_path(), follow=True)
+        self.assertTrue(response.context['validlink'])
+        set_url = response.redirect_chain[-1][0]
+
+        response = self.client.post(
+            set_url,
+            {'new_password1': 'new-Strong-456', 'new_password2': 'new-Strong-456'},
+        )
+        self.assertRedirects(response, reverse('password_reset_complete'))
+        self.assertTrue(self.client.login(username='anna', password='new-Strong-456'))
+
+    def test_weak_password_is_rejected(self):
+        self.request_reset()
+        response = self.client.get(self.reset_path(), follow=True)
+        set_url = response.redirect_chain[-1][0]
+        response = self.client.post(
+            set_url, {'new_password1': 'short', 'new_password2': 'short'}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('new_password2', response.context['form'].errors)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('old-Pass-123'))
+
+    def test_invalid_token_shows_invalid_link_page(self):
+        url = reverse(
+            'password_reset_confirm', kwargs={'uidb64': 'MQ', 'token': 'bad-token'}
+        )
+        response = self.client.get(url, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['validlink'])
+
+    def test_link_cannot_be_used_twice(self):
+        self.request_reset()
+        path = self.reset_path()
+        response = self.client.get(path, follow=True)
+        self.client.post(
+            response.redirect_chain[-1][0],
+            {'new_password1': 'new-Strong-456', 'new_password2': 'new-Strong-456'},
+        )
+        self.client.logout()
+        response = self.client.get(path, follow=True)
+        self.assertFalse(response.context['validlink'])

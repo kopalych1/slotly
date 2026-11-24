@@ -29,6 +29,11 @@ urlpatterns = [
         accounts.views.PasswordChange.as_view(),
         name='password_change',
     ),
+    path(
+        'accounts/password_reset/',
+        accounts.views.PasswordReset.as_view(),
+        name='password_reset',
+    ),
     path('accounts/', include('django.contrib.auth.urls')),
     path('', scheduling.views.index, name='home'),
     path('exams/<int:pk>/', scheduling.views.exam_detail, name='exam_detail'),
