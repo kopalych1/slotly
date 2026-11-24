@@ -2,6 +2,11 @@
 {% load scheduling_extras %}
 {% load i18n static %}
 {% block title %}{% if exam %}{{ exam.name }}{% else %}{% trans "New exam" %}{% endif %} · Slotly{% endblock %}
+{% block head %}
+  <link rel="stylesheet"
+        href="{% static 'vendor/flatpickr/flatpickr.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/datepicker.css' %}">
+{% endblock %}
 {% block content %}
   {% trans "Delete this day and all its free slots? Unsaved changes on this page will be lost." as delete_day_msg %}
   {% include "partials/exam_header.html" with active="edit" %}
@@ -108,5 +113,9 @@
   {% endif %}
 {% endblock %}
 {% block scripts %}
+  <script src="{% static 'vendor/flatpickr/flatpickr.min.js' %}" defer></script>
+  <script src="{% static 'vendor/flatpickr/l10n/nl.js' %}" defer></script>
+  <script src="{% static 'vendor/flatpickr/l10n/fr.js' %}" defer></script>
+  <script src="{% static 'js/datepickers.js' %}" defer></script>
   <script src="{% static 'js/exam_edit.js' %}" defer></script>
 {% endblock %}

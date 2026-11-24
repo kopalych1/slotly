@@ -11,6 +11,7 @@
     <link rel="apple-touch-icon" href="{% static 'apple-touch-icon.png' %}">
     <title>{% block title %}Slotly{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/slotly.css' %}">
+    {% block head %}{% endblock %}
     <script src="{% static 'js/htmx.min.js' %}" defer></script>
   </head>
   <body>

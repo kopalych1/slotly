@@ -21,7 +21,8 @@ class ExamForm(forms.ModelForm):
 
         widgets = {  # noqa: RUF012
             'slots_change_deadline': forms.DateTimeInput(
-                attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'
+                attrs={'data-picker': 'datetime', 'autocomplete': 'off'},
+                format='%Y-%m-%dT%H:%M',
             ),
         }
 
@@ -29,7 +30,9 @@ class ExamForm(forms.ModelForm):
 class DayForm(forms.Form):
     date = forms.DateField(
         label=_('Date'),
-        widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+        widget=forms.DateInput(
+            attrs={'data-picker': 'date', 'autocomplete': 'off'}, format='%Y-%m-%d'
+        ),
     )
     start = forms.TimeField(
         label=_('From'),

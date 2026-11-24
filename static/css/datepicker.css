@@ -1,0 +1,131 @@
+/* Theme for flatpickr, built on the Slotly colour variables.
+   Load after flatpickr.min.css. */
+
+.flatpickr-calendar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  color: var(--text);
+  font: inherit;
+}
+.flatpickr-calendar.arrowTop::before {
+  border-bottom-color: var(--border);
+}
+.flatpickr-calendar.arrowTop::after {
+  border-bottom-color: var(--surface);
+}
+.flatpickr-calendar.arrowBottom::before {
+  border-top-color: var(--border);
+}
+.flatpickr-calendar.arrowBottom::after {
+  border-top-color: var(--surface);
+}
+
+.flatpickr-months .flatpickr-month,
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year {
+  background: transparent;
+  color: var(--text);
+  fill: var(--text);
+}
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover,
+.flatpickr-current-month .flatpickr-monthDropdown-months:focus {
+  background: var(--bg);
+}
+.flatpickr-current-month .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month {
+  background: var(--surface);
+  color: var(--text);
+}
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+  color: var(--muted);
+  fill: var(--muted);
+}
+.flatpickr-months .flatpickr-prev-month:hover,
+.flatpickr-months .flatpickr-next-month:hover {
+  color: var(--accent);
+}
+.flatpickr-months .flatpickr-prev-month:hover svg,
+.flatpickr-months .flatpickr-next-month:hover svg {
+  fill: var(--accent);
+}
+
+span.flatpickr-weekday {
+  background: transparent;
+  color: var(--muted);
+}
+
+.flatpickr-day {
+  border-radius: 8px;
+  color: var(--text);
+}
+.flatpickr-day:hover,
+.flatpickr-day:focus {
+  background: var(--slot-mine-bg);
+  border-color: transparent;
+  color: var(--text);
+}
+.flatpickr-day.today {
+  border-color: var(--accent);
+}
+.flatpickr-day.today:hover,
+.flatpickr-day.today:focus {
+  background: var(--slot-mine-bg);
+  border-color: var(--accent);
+  color: var(--text);
+}
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover,
+.flatpickr-day.selected:focus {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay,
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+.flatpickr-time {
+  border-top-color: var(--border) !important;
+}
+.flatpickr-time input,
+.flatpickr-time .flatpickr-time-separator,
+.flatpickr-time .flatpickr-am-pm {
+  background: transparent;
+  color: var(--text);
+}
+.flatpickr-time input:hover,
+.flatpickr-time input:focus,
+.flatpickr-time .flatpickr-am-pm:hover,
+.flatpickr-time .flatpickr-am-pm:focus {
+  background: var(--bg);
+}
+.numInputWrapper:hover {
+  background: var(--bg);
+}
+.numInputWrapper span {
+  border-color: var(--border);
+}
+.numInputWrapper span:hover {
+  background: var(--bg);
+}
+.numInputWrapper span.arrowUp::after {
+  border-bottom-color: var(--muted);
+}
+.numInputWrapper span.arrowDown::after {
+  border-top-color: var(--muted);
+}
+
+/* Visible field (flatpickr's alt input / native mobile input) */
+.field input.flatpickr-input,
+.field input.flatpickr-mobile {
+  width: 100%;
+  min-height: 2.75rem;
+}

@@ -68,8 +68,9 @@
       .trim();
     const row = holder.firstElementChild;
     addColumn.before(row);
+    window.initPickers?.(row);
     totalForms.value = String(index + 1);
-    row.querySelector("input").focus();
+    row.querySelector("input:not([type=hidden])")?.focus();
     updatePreview(row);
     refreshSave();
   };
