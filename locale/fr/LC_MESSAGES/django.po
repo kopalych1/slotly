@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 06:02+0100\n"
+"POT-Creation-Date: 2026-11-24 06:17+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -33,11 +33,12 @@ msgstr "Enseignant"
 msgid "Student"
 msgstr "Étudiant"
 
-#: accounts/views.py:16
+#: accounts/views.py:24 templates/registration/password_reset_complete.html:3
+#: templates/registration/password_reset_complete.html:6
 msgid "Password changed"
 msgstr "Mot de passe modifié"
 
-#: accounts/views.py:28
+#: accounts/views.py:36
 msgid "Profile saved"
 msgstr "Profil enregistré"
 
@@ -981,6 +982,7 @@ msgstr "Déjà inscrit à cet examen ? Connecte-toi pour l’ouvrir."
 #: templates/join.html:23 templates/join.html:33 templates/register.html:32
 #: templates/registration/login.html:3 templates/registration/login.html:6
 #: templates/registration/login.html:30
+#: templates/registration/password_reset_complete.html:8
 msgid "Log in"
 msgstr "Se connecter"
 
@@ -1068,6 +1070,7 @@ msgstr "Rôle"
 #: templates/profile.html:28 templates/registration/password_change_form.html:3
 #: templates/registration/password_change_form.html:6
 #: templates/registration/password_change_form.html:25
+#: templates/registration/password_reset_confirm.html:26
 msgid "Change password"
 msgstr "Changer le mot de passe"
 
@@ -1091,6 +1094,93 @@ msgstr "Nom d’utilisateur"
 msgid "Password"
 msgstr "Mot de passe"
 
+#: templates/registration/login.html:33
+#: templates/registration/password_reset_form.html:3
+#: templates/registration/password_reset_form.html:6
+msgid "Forgot your password?"
+msgstr "Mot de passe oublié ?"
+
 #: templates/registration/password_change_form.html:28
 msgid "Back to profile"
 msgstr "Retour au profil"
+
+#: templates/registration/password_reset_complete.html:7
+msgid "Your password has been changed. You can now log in."
+msgstr "Ton mot de passe a été modifié. Tu peux maintenant te connecter."
+
+#: templates/registration/password_reset_confirm.html:3
+#: templates/registration/password_reset_confirm.html:7
+msgid "Choose a new password"
+msgstr "Choisis un nouveau mot de passe"
+
+#: templates/registration/password_reset_confirm.html:29
+msgid "This link is no longer valid"
+msgstr "Ce lien n’est plus valide"
+
+#: templates/registration/password_reset_confirm.html:30
+msgid "The link has expired or has already been used. Request a new one."
+msgstr "Le lien a expiré ou a déjà été utilisé. Demande-en un nouveau."
+
+#: templates/registration/password_reset_confirm.html:32
+msgid "Request a new link"
+msgstr "Demander un nouveau lien"
+
+#: templates/registration/password_reset_done.html:3
+#: templates/registration/password_reset_done.html:6
+msgid "Check your email"
+msgstr "Vérifie tes e-mails"
+
+#: templates/registration/password_reset_done.html:7
+msgid ""
+"If an account exists for the address you entered, we have sent a link to "
+"reset your password. It can take a few minutes to arrive, so check your spam "
+"folder too."
+msgstr ""
+"Si un compte existe pour l’adresse saisie, nous avons envoyé un lien pour "
+"réinitialiser ton mot de passe. Il peut mettre quelques minutes à arriver, "
+"pense donc à vérifier tes courriers indésirables."
+
+#: templates/registration/password_reset_done.html:9
+#: templates/registration/password_reset_form.html:23
+msgid "Back to log in"
+msgstr "Retour à la connexion"
+
+#: templates/registration/password_reset_email.txt:1
+msgid ""
+"You (or someone else) asked to reset the password of your Slotly account."
+msgstr ""
+"Toi (ou quelqu’un d’autre) as demandé la réinitialisation du mot de passe de "
+"ton compte Slotly."
+
+#: templates/registration/password_reset_email.txt:3
+msgid "Choose a new password here:"
+msgstr "Choisis un nouveau mot de passe ici :"
+
+#: templates/registration/password_reset_email.txt:6
+#, python-format
+msgid "Your username is: %(username)s"
+msgstr "Ton nom d’utilisateur est : %(username)s"
+
+#: templates/registration/password_reset_email.txt:8
+msgid ""
+"If you did not ask for this, you can ignore this email. Your password will "
+"not change."
+msgstr ""
+"Si tu n’en es pas à l’origine, tu peux ignorer cet e-mail. Ton mot de passe "
+"ne changera pas."
+
+#: templates/registration/password_reset_form.html:7
+msgid ""
+"Enter the email address of your account and we will send you a link to choose"
+" a new password."
+msgstr ""
+"Saisis l’adresse e-mail de ton compte et nous t’enverrons un lien pour "
+"choisir un nouveau mot de passe."
+
+#: templates/registration/password_reset_form.html:20
+msgid "Send reset link"
+msgstr "Envoyer le lien de réinitialisation"
+
+#: templates/registration/password_reset_subject.txt:1
+msgid "Reset your Slotly password"
+msgstr "Réinitialise ton mot de passe Slotly"
